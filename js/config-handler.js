@@ -377,6 +377,28 @@ function ConfigHandler() {
 	}
 
 
+	this.deleteSelectedButtons = function () {
+		let buttCount = Number(_getParamValue('overlay' + _currentOverlay + '_descs'));
+
+		if (selectedButtonLineIndexes.length >= buttCount) {
+			alert('Can not delete all buttons of overlay!');
+			return;
+		}
+
+		// Numbers of remaining buttons shift after delete, so start from the highest
+		let prefix = 'overlay' + _currentOverlay + '_desc';
+		let numbers = selectedButtonLineIndexes.map(i => Number(_isOverlayXX_descYY(_strings[i]).substr(prefix.length)));
+		numbers.sort((a, b) => b - a);
+
+		numbers.forEach(number => {
+			_currentLine = _getParamIndex(prefix + number);
+			this.deleteCurrentButton();
+		});
+
+		selectedButtonLineIndexes.length = 0;
+	}
+
+
 	this.deleteCurrentButton = function () {
 		if (_currentLine == -1) {
 			return false;

@@ -1421,7 +1421,6 @@ function showAdditionalParametersForCommand(command) {
 function enableEditor(enable) {
 	enableEditorSliders(enable)
 	document.getElementById('show-button-editor').disabled = !enable;
-	document.getElementById('del-current-button').disabled = !enable;
 }
 
 
@@ -1430,6 +1429,7 @@ function enableEditorSliders(enable) {
 	let inputs = editor.querySelectorAll('input,button');
 	inputs.forEach(e => { e.disabled = !enable })
 	document.getElementById('duplicate-button').disabled = !enable;
+	document.getElementById('del-current-button').disabled = !enable;
 	document.querySelectorAll('#align-buttons button').forEach(e => { e.disabled = !enable || !conf.isGroupSelected() });
 }
 
@@ -1924,8 +1924,12 @@ function editOverlay() {
 function delCurrentButton() {
 	showDialog('button-delete-dialog', false);
 
-	if (!conf.deleteCurrentButton())
+	if (conf.isGroupSelected())
+		conf.deleteSelectedButtons();
+	else if (!conf.deleteCurrentButton())
 		alert('No selection!');
+
+	currentRect = null;
 	redrawPad();
 }
 
