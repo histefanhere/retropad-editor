@@ -1499,7 +1499,7 @@ function exportAnyway() {
 
 
 function showConfigCheck() {
-	fillCheckDialog(conf.getConfigProblems(images), []);
+	fillCheckDialog(conf.getConfigProblems(images), conf.getHitAreaOverlaps());
 	document.getElementById('check-export-anyway').classList.add('hidden');
 	showDialog('check-dialog', true);
 }

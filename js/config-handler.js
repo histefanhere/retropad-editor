@@ -546,6 +546,89 @@ function ConfigHandler() {
 	}
 
 
+	// Touch areas of overlay buttons (size includes range_mod)
+	this.getHitAreas = function (overlayIndex) {
+		let prefix = 'overlay' + overlayIndex;
+		let overlayRange = Number(_getParamValue(prefix + '_range_mod')) || 1;
+		let areas = [];
+
+		_strings.forEach(line => {
+			if (line.search(new RegExp('^' + prefix + '_desc\\d+\\s*=')) != 0)
+				return;
+
+			let param = line.split('=')[0].trim();
+			let range = Number(_getParamValue(param + '_range_mod')) || overlayRange;
+
+			areas.push({
+				command: _getParamSectionValue(line, 'command'),
+				shape: _getParamSectionValue(line, 'shape'),
+				x: Number(_getParamSectionValue(line, 'x')),
+				y: Number(_getParamSectionValue(line, 'y')),
+				w: Number(_getParamSectionValue(line, 'w')) * range,
+				h: Number(_getParamSectionValue(line, 'h')) * range,
+			});
+		});
+
+		return areas;
+	}
+
+
+	this.isPointInHitArea = function (area, x, y) {
+		let dx = (x - area.x) / area.w;
+		let dy = (y - area.y) / area.h;
+
+		if (area.shape == 'radial')
+			return dx * dx + dy * dy <= 1;
+
+		return Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
+	}
+
+
+	// Pairs that share a command (up and left|up) or are special areas overlap on purpose
+	this.getHitAreaOverlaps = function () {
+		let notes = [];
+		let count = Number(_getParamValue('overlays'));
+		const SAMPLES = 16;
+
+		for (let i = 0; i < count; i++) {
+			let label = _getParamValue('overlay' + i + '_name') || ('overlay ' + i);
+			let areas = this.getHitAreas(i).filter(a => a.command != 'null' && !a.command.endsWith('_area'));
+
+			for (let a = 0; a < areas.length; a++) {
+				for (let b = a + 1; b < areas.length; b++) {
+					let first = areas[a];
+					let second = areas[b];
+
+					if (first.command.split('|').some(c => second.command.split('|').includes(c)))
+						continue;
+
+					let left = Math.max(first.x - first.w, second.x - second.w);
+					let right = Math.min(first.x + first.w, second.x + second.w);
+					let top = Math.max(first.y - first.h, second.y - second.h);
+					let bottom = Math.min(first.y + first.h, second.y + second.h);
+
+					if (left >= right || top >= bottom)
+						continue;
+
+					let isOverlap = false;
+					for (let sx = 0; sx <= SAMPLES && !isOverlap; sx++) {
+						for (let sy = 0; sy <= SAMPLES && !isOverlap; sy++) {
+							let x = left + (right - left) * sx / SAMPLES;
+							let y = top + (bottom - top) * sy / SAMPLES;
+							isOverlap = this.isPointInHitArea(first, x, y) && this.isPointInHitArea(second, x, y);
+						}
+					}
+
+					if (isOverlap)
+						notes.push(label + ': hit areas of ' + first.command + ' and ' + second.command + ' overlap');
+				}
+			}
+		}
+
+		return notes;
+	}
+
+
 	// Returns descriptions of things that will not work in RetroArch
 	this.getConfigProblems = function (imagesObj) {
 		let problems = [];
