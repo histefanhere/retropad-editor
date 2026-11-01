@@ -759,6 +759,14 @@
 					<input type=radio name='color-scheme-radio' id='color-scheme-2' autocomplete='off'
 						onchange='setColorScheme(2)'>
 					<label for='color-scheme-2' id='color-scheme-2-label'>Color theme 2</label>
+					<br class='wide'>
+
+					<label for='app-theme'>App appearance</label>
+					<select id='app-theme' onchange='setAppTheme(this.value)'>
+						<option value='auto'>System</option>
+						<option value='light'>Light</option>
+						<option value='dark'>Dark</option>
+					</select>
 
 				</div>
 				<div class='modal-dialog__footer-box'>

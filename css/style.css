@@ -789,6 +789,91 @@ body.is-file-dragging #main-container {
 	cursor: pointer;
 }
 
+body.dark {
+	background-color: #1c1c20;
+	color: #ddd;
+}
+
+body.dark #header, body.dark #toolbar, body.dark #editor-container, body.dark #editor, body.dark #footer, body.dark .modal-dialog {
+	background-color: #2a2a30;
+	box-shadow: none;
+}
+
+body.dark .modal-dialog__header-box {
+	background-color: #33333b;
+	color: #7cf;
+	border-bottom-color: #7cf;
+}
+
+body.dark .modal-dialog__footer-box, body.dark .toolbar-group, body.dark #gamepad-container {
+	border-color: #445;
+}
+
+body.dark .group-header, body.dark #header__caption {
+	color: #7cf;
+}
+
+body.dark a {
+	color: #7cf;
+}
+
+body.dark button.empty, body.dark .input_file label {
+	color: #7cf;
+	border-color: #7cf;
+}
+
+body.dark button.empty:hover, body.dark .input_file input[type=file]:hover+label {
+	background-color: rgba(120, 200, 255, 0.15);
+}
+
+body.dark input[type=number], body.dark input[type=text], body.dark textarea, body.dark select {
+	background-color: #1f1f24;
+	border-color: #556;
+	color: #ddd;
+}
+
+body.dark input[type=checkbox], body.dark input[type=radio] {
+	background-color: #1f1f24;
+	border-color: #778;
+}
+
+body.dark input[type=range]::-webkit-slider-runnable-track {
+	background-color: #1f1f24;
+	border-color: #556;
+}
+
+body.dark input[type=range]::-moz-range-track {
+	background-color: #1f1f24;
+	border-color: #556;
+}
+
+body.dark #image-name {
+	box-shadow: inset 0 0 0 1px #1f1f24;
+}
+
+body.dark #download-help, body.dark #version, body.dark #aspect-hint {
+	color: #99a;
+}
+
+body.dark #check-list li.is-problem {
+	color: #f88;
+}
+
+body.dark #button-list li.selected {
+	background-color: rgba(255, 90, 90, 0.25);
+}
+
+body.dark .toast {
+	background-color: #eee;
+	color: #222;
+}
+
+body.dark #image-picker-grid button {
+	background-color: #33333b;
+	border-color: #556;
+	color: #ddd;
+}
+
 .hidden {
 	display: none;
 }

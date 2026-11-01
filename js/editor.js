@@ -183,6 +183,11 @@ document.addEventListener('visibilitychange', () => {
 		flushPendingAutosave();
 });
 
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+	setAppTheme(document.getElementById('app-theme').value);
+});
+setAppTheme('auto');
+
 checkForSavedSession();
 
 
@@ -2761,6 +2766,13 @@ function selectOverlay(event) {
 
 function showColorsDialog() {
 	showDialog('colors-dialog', true);
+}
+
+
+function setAppTheme(theme) {
+	let isDark = theme == 'dark' || (theme == 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+	document.body.classList.toggle('dark', isDark);
+	document.getElementById('app-theme').value = theme;
 }
 
 
