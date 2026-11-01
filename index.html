@@ -15,6 +15,7 @@
 	<script defer src='js/defaults.js'></script>
 	<script defer src='js/config-handler.js'></script>
 	<script defer src='js/session-store.js'></script>
+	<script defer src='js/zip-writer.js'></script>
 	<script defer src='js/editor.js'></script>
 	<script defer src='js/file-input-helper.js'></script>
 </head>
@@ -492,6 +493,8 @@
 						<tr>
 							<td>
 								<button class='empty' id='export-button' onclick='exportConfig()'>Export config</button>
+								<button class='empty' id='export-zip-button' title='Config and all images it uses'
+									onclick='exportZip()'>Export ZIP</button>
 								<button class="empty button--normal-size"
 									onclick='showDialog("export-hint-dialog", true)'>?</button>
 							</td>

@@ -515,6 +515,23 @@ function ConfigHandler() {
 	}
 
 
+	// Names of all images used by overlays and buttons
+	this.getUsedImages = function () {
+		let used = [];
+
+		_strings.forEach(line => {
+			if (line.search(/^overlay\d+(_desc\d+)?_overlay\s*=/) == -1)
+				return;
+
+			let name = line.substr(line.indexOf('=') + 1).trim().replace(/^"(.*)"$/, '$1');
+			if (name && !used.includes(name))
+				used.push(name);
+		});
+
+		return used;
+	}
+
+
 	this.getCurrentOverlay = function () {
 		return _currentOverlay;
 	}

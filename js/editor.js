@@ -1332,6 +1332,34 @@ function exportConfig() {
 }
 
 
+async function exportZip() {
+	let configText = conf.getConfigString();
+	let configName = getExportFilename();
+	let files = [{ name: configName, bytes: new TextEncoder().encode(configText) }];
+	let missing = [];
+
+	for (let name of conf.getUsedImages()) {
+		try {
+			let response = await fetch(images[name]);
+			if (!response.ok)
+				throw new Error(response.status);
+
+			files.push({ name: name, bytes: new Uint8Array(await response.arrayBuffer()) });
+		} catch {
+			missing.push(name);
+		}
+	}
+
+	downloadBlob(createZipBlob(files), configName.replace(/\.cfg$/i, '') + '.zip');
+
+	savedConfigStr = configText;
+	scheduleAutosave();
+
+	if (missing.length > 0)
+		alert('Images not added to archive:\n' + missing.join('\n'));
+}
+
+
 function downloadBlob(blob, filename) {
 	let a = document.createElement('A');
 	a.href = URL.createObjectURL(blob);
