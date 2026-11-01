@@ -10,6 +10,8 @@ const manualScaleParams = 'block_x_separation = false\nblock_y_separation = fals
 
 const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
+const SNAP_THRESHOLD = 0.008;
+const SNAP_GRID_STEP = 0.05;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
 const NUDGE_STEP = 0.001;
@@ -101,6 +103,7 @@ document.getElementById('chk-show-shapes').addEventListener('change', toggleShap
 document.getElementById('chk-show-names').addEventListener('change', toggleNames);
 document.getElementById('chk-show-portrait').addEventListener('change', toggleOrientation);
 document.getElementById('chk-show-offscreen').addEventListener('change', toggleOffscreen);
+document.getElementById('chk-snap').addEventListener('change', toggleSnap);
 document.getElementById('overlay-selector').addEventListener('change', selectOverlay);
 
 document.getElementById('command-select').addEventListener('change', fillCommandField);
@@ -221,13 +224,91 @@ function onRectPointerDown(event, rect, lineIndex) {
 	let start = conf.getSelectionDimensions() || {
 		x: Number(conf.getCurrentLineSectionValue('x')),
 		y: Number(conf.getCurrentLineSectionValue('y')),
+		w: Number(conf.getCurrentLineSectionValue('w')),
+		h: Number(conf.getCurrentLineSectionValue('h')),
 	};
 	let frame = rect.parentElement.getBoundingClientRect();
+	let snapLines = getSnapLines();
 
-	trackPointerDrag(rect, event, (dx, dy) => {
-		setButtonParam('x', start.x + dx / frame.width);
-		setButtonParam('y', start.y + dy / frame.height);
+	trackPointerDrag(rect, event, (dx, dy, moveEvent) => {
+		let x = start.x + dx / frame.width;
+		let y = start.y + dy / frame.height;
+
+		if (isSnapActive(moveEvent)) {
+			let snapX = findSnap([x - start.w, x, x + start.w], snapLines.x);
+			let snapY = findSnap([y - start.h, y, y + start.h], snapLines.y);
+			x += snapX ? snapX.delta : 0;
+			y += snapY ? snapY.delta : 0;
+			showSnapGuides(rect.parentElement, snapX, snapY);
+		}
+
+		setButtonParam('x', x);
+		setButtonParam('y', y);
 	});
+}
+
+
+function isSnapActive(event) {
+	return document.getElementById('chk-snap').checked && !event.altKey;
+}
+
+
+// Lines of buttons that are not moved
+function getSnapLines() {
+	let selected = conf.isGroupSelected() ? conf.getSelectedIndexes() : [conf.getCurrentLine()];
+	let lines = { x: [0.5], y: [0.5] };
+
+	conf.buildPadFromConfig().forEach(b => {
+		if (selected.includes(b.i))
+			return;
+
+		let x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
+		lines.x.push(x - w, x, x + w);
+		lines.y.push(y - h, y, y + h);
+	});
+
+	return lines;
+}
+
+
+// Button lines take priority over grid
+function findSnap(values, lines) {
+	let closest = (candidates) => {
+		let best = null;
+
+		values.forEach(value => {
+			candidates(value).forEach(line => {
+				let delta = line - value;
+				if (Math.abs(delta) < SNAP_THRESHOLD && (!best || Math.abs(delta) < Math.abs(best.delta)))
+					best = { delta: delta, line: line };
+			});
+		});
+
+		return best;
+	};
+
+	return closest(() => lines) || closest(value => [Math.round(value / SNAP_GRID_STEP) * SNAP_GRID_STEP]);
+}
+
+
+function showSnapGuides(container, snapX, snapY) {
+	removeSnapGuides();
+
+	[['x', snapX], ['y', snapY]].forEach(([axis, snap]) => {
+		if (!snap)
+			return;
+
+		let guide = document.createElement('DIV');
+		guide.classList.add('snap-guide');
+		guide.classList.add('snap-guide--' + axis);
+		guide.style[axis == 'x' ? 'left' : 'top'] = (snap.line * 100) + '%';
+		container.appendChild(guide);
+	});
+}
+
+
+function removeSnapGuides() {
+	document.querySelectorAll('.snap-guide').forEach(e => e.remove());
 }
 
 
@@ -243,11 +324,20 @@ function onResizeHandlePointerDown(event, rect, signX, signY) {
 		start[elem] = Number(conf.getCurrentLineSectionValue(elem));
 	});
 	let frame = rect.parentElement.getBoundingClientRect();
+	let snapLines = getSnapLines();
 
 	// x, y are center coordinates and w, h are half sizes; opposite corner stays in place
 	trackPointerDrag(event.target, event, (dx, dy, moveEvent) => {
 		let w = Math.max(MIN_BUTTON_SIZE, start.w + signX * dx / frame.width / 2);
 		let h = Math.max(MIN_BUTTON_SIZE, start.h + signY * dy / frame.height / 2);
+
+		if (isSnapActive(moveEvent) && !moveEvent.shiftKey) {
+			let snapX = findSnap([start.x + signX * (2 * w - start.w)], snapLines.x);
+			let snapY = findSnap([start.y + signY * (2 * h - start.h)], snapLines.y);
+			w = Math.max(MIN_BUTTON_SIZE, w + (snapX ? signX * snapX.delta / 2 : 0));
+			h = Math.max(MIN_BUTTON_SIZE, h + (snapY ? signY * snapY.delta / 2 : 0));
+			showSnapGuides(rect.parentElement, snapX, snapY);
+		}
 
 		if (moveEvent.shiftKey && start.w > 0 && start.h > 0) {
 			let scale = Math.max(w / start.w, h / start.h);
@@ -301,6 +391,7 @@ function trackPointerDrag(element, startEvent, onMove) {
 		element.removeEventListener('pointerup', end);
 		element.removeEventListener('pointercancel', end);
 		cancelActiveDrag = null;
+		removeSnapGuides();
 
 		if (isMoved)
 			commitHistory();
@@ -1823,6 +1914,11 @@ function toggleScreenshot(event) {
 	setScreenDimensions();
 	refreshScreenshot();
 	redrawPad();
+}
+
+
+function toggleSnap(event) {
+	document.getElementById('screenpad').classList.toggle('show-grid', event.target.checked);
 }
 
 
