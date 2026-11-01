@@ -520,6 +520,9 @@ function loadConfigFromFile(e) {
 
 	let reader = new FileReader();
 	reader.onload = function (ev) {
+		let previousConfig = conf.getConfigString();
+		let previousSaved = savedConfigStr;
+
 		try {
 			renderConfig(ev.target.result);
 			configStr = ev.target.result;
@@ -528,7 +531,8 @@ function loadConfigFromFile(e) {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
 			alert(errMsg + '\nPrevious config is restored.');
-			renderConfig(configStr);
+			renderConfig(previousConfig);
+			savedConfigStr = previousSaved;
 			e.target.value = '';
 			document.getElementById('load-config-filename').textContent = '';
 		}
