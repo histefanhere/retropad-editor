@@ -304,6 +304,20 @@ function ConfigHandler() {
 	}
 
 
+	// direction is -1 or 1
+	this.moveCurrentOverlay = function (direction) {
+		let target = _currentOverlay + direction;
+		if (target < 0 || target >= Number(_getParamValue('overlays')))
+			return false;
+
+		_swapParamBlocks('overlay', _currentOverlay, target);
+		_currentOverlay = target;
+		_currentLine = -1;
+		selectedButtonLineIndexes.length = 0;
+		return true;
+	}
+
+
 	this.isOverlayNameExist = function (name) {
 		let list = this.getOverlayList();
 		for (let i = 0; i < list.length; i++) {
@@ -866,6 +880,25 @@ function ConfigHandler() {
 				ret.push(_strings[i])
 
 		return ret;
+	}
+
+
+	// Swaps numbers of two parameter blocks and places them next to each other in number order
+	function _swapParamBlocks(prefix, numA, numB) {
+		let lower = Math.min(numA, numB);
+		let upper = Math.max(numA, numB);
+		let lowerLines = _getParamStrings(prefix + lower);
+		let upperLines = _getParamStrings(prefix + upper);
+		let position = Math.min(_strings.indexOf(lowerLines[0]), _strings.indexOf(upperLines[0]));
+
+		let renumber = (lines, from, to) => {
+			let reg = new RegExp('^' + prefix + from + '(?!\\d)');
+			return lines.map(line => line.replace(reg, prefix + to));
+		};
+
+		_deleteParamStrings(prefix + lower);
+		_deleteParamStrings(prefix + upper);
+		_strings.splice(position, 0, ...renumber(upperLines, upper, lower), ...renumber(lowerLines, lower, upper));
 	}
 
 

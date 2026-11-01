@@ -76,6 +76,8 @@
 				<div class='toolbar-group'>
 					<span class='group-header'>OVERLAY</span>
 					<select id='overlay-selector' class='notranslate' translate='no'></select>
+					<button class='button--normal-size' id='overlay-move-up' title='Move overlay up' aria-label='Move overlay up' onclick='moveOverlay(-1)'>&uarr;</button>
+					<button class='button--normal-size' id='overlay-move-down' title='Move overlay down' aria-label='Move overlay down' onclick='moveOverlay(1)'>&darr;</button>
 					<div class='toolbar-group__buttons'>
 						<button onclick='showOverlayEditor()'>Create • Edit</button>
 						<button onclick='showDialog("overlay-delete-dialog", true)'>Delete overlay</button>

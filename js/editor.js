@@ -1952,6 +1952,17 @@ function delCurrentButton() {
 }
 
 
+function moveOverlay(direction) {
+	if (!conf.moveCurrentOverlay(direction))
+		return;
+
+	currentRect = null;
+	buildAndSetOverlaySelectors(conf.getCurrentOverlay());
+	setScreenDimensions();
+	redrawPad();
+}
+
+
 function delCurrentOverlay() {
 	showDialog('overlay-delete-dialog', false);
 
