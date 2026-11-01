@@ -190,6 +190,8 @@ function createPadView() {
 	if (!rects)
 		return;
 
+	buildButtonList(rects);
+
 	for (let i = 0; i < rects.length; i++) {
 		let r = rects[i];
 		let b = createRect(background, r.command, r.x, r.y, r.w, r.h, r.pct);
@@ -231,6 +233,85 @@ function createPadView() {
 			document.activeElement.blur();
 		});
 	}
+}
+
+
+function buildButtonList(rects) {
+	let list = document.getElementById('button-list');
+	list.innerHTML = '';
+
+	rects.slice().sort((a, b) => a.number - b.number).forEach(r => {
+		let row = document.createElement('LI');
+		row.dataset.lineIndex = r.i;
+
+		let name = document.createElement('INPUT');
+		name.type = 'text';
+		name.value = r.command;
+		name.setAttribute('aria-label', 'Button command');
+		name.addEventListener('focus', () => selectRectByLine(r.i));
+		name.addEventListener('change', () => renameButton(r.i, name));
+
+		row.appendChild(name);
+		row.appendChild(createListMoveButton('\u2191', 'Move button up', r.i, -1));
+		row.appendChild(createListMoveButton('\u2193', 'Move button down', r.i, 1));
+		row.addEventListener('click', e => {
+			if (e.target == row)
+				selectRectByLine(r.i);
+		});
+
+		list.appendChild(row);
+	});
+}
+
+
+function createListMoveButton(text, title, lineIndex, direction) {
+	let button = document.createElement('BUTTON');
+	button.textContent = text;
+	button.title = title;
+	button.setAttribute('aria-label', title);
+	button.addEventListener('click', () => moveButtonInList(lineIndex, direction));
+	return button;
+}
+
+
+function selectRectByLine(lineIndex) {
+	let rect = document.querySelector('.rect[data-line-index="' + lineIndex + '"]');
+	if (rect && !rect.classList.contains('selected'))
+		selectRect(rect, lineIndex);
+}
+
+
+function renameButton(lineIndex, input) {
+	let command = input.value.trim();
+	conf.setCurrentLine(lineIndex);
+
+	if (command == '' || /[\s,"=]/.test(command)) {
+		input.value = conf.getCurrentLineSectionValue('command');
+		alert('Button command should not be empty or contain spaces, commas, quotes or =');
+		return;
+	}
+
+	conf.setCurrentLineSectionValue('command', command);
+	document.querySelector('.rect[data-line-index="' + lineIndex + '"]').firstChild.textContent = command;
+	commitHistory();
+}
+
+
+function moveButtonInList(lineIndex, direction) {
+	let newIndex = conf.moveButton(lineIndex, direction);
+	if (newIndex === null)
+		return;
+
+	redrawPad();
+	selectRectByLine(newIndex);
+}
+
+
+function updateButtonListSelection() {
+	document.querySelectorAll('#button-list li').forEach(row => {
+		let rect = document.querySelector('.rect[data-line-index="' + row.dataset.lineIndex + '"]');
+		row.classList.toggle('selected', !!rect && rect.classList.contains('selected'));
+	});
 }
 
 
@@ -1428,6 +1509,7 @@ function enableEditorSliders(enable) {
 	let editor = document.getElementById('editor');
 	let inputs = editor.querySelectorAll('input,button');
 	inputs.forEach(e => { e.disabled = !enable })
+	updateButtonListSelection();
 	document.getElementById('duplicate-button').disabled = !enable;
 	document.getElementById('mirror-button').disabled = !enable;
 	document.getElementById('del-current-button').disabled = !enable;

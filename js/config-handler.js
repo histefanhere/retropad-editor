@@ -122,6 +122,7 @@ function ConfigHandler() {
 			let parameter = _isOverlayXX_descYY(_strings[i]);
 			if (parameter) {
 				let o = {
+					number: Number(parameter.substr(parameter.lastIndexOf('desc') + 4)),
 					command: _getParamSectionValue(_strings[i], 'command'),
 					x: _getParamSectionValue(_strings[i], 'x'),
 					y: _getParamSectionValue(_strings[i], 'y'),
@@ -315,6 +316,23 @@ function ConfigHandler() {
 		_currentLine = -1;
 		selectedButtonLineIndexes.length = 0;
 		return true;
+	}
+
+
+	// Returns new line index of button or null if it can not be moved
+	this.moveButton = function (lineIndex, direction) {
+		let prefix = 'overlay' + _currentOverlay + '_desc';
+		let name = _isOverlayXX_descYY(_strings[lineIndex]);
+		let number = Number(name.substr(prefix.length));
+		let target = number + direction;
+
+		if (target < 0 || target >= Number(_getParamValue('overlay' + _currentOverlay + '_descs')))
+			return null;
+
+		_swapParamBlocks(prefix, number, target);
+		selectedButtonLineIndexes.length = 0;
+		_currentLine = _getParamIndex(prefix + target);
+		return _currentLine;
 	}
 
 
