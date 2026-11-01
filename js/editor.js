@@ -1772,12 +1772,19 @@ function toggleNames(event) {
 }
 
 
-function flipXcoord() {
-	let x = conf.flipXcoord()
-	document.getElementById('x-range').value = x;
-	document.getElementById('x-number').value = x;
-	updateCurrentLine();
-	syncSelectedButtons();
+function flipCoord(axis) {
+	conf.flipSelection(axis);
+
+	if (conf.isGroupSelected()) {
+		syncSelectedButtons();
+		setEditorControls();
+	} else {
+		let value = conf.getCurrentLineSectionValue(axis);
+		document.getElementById(axis + '-range').value = value;
+		document.getElementById(axis + '-number').value = value;
+		updateCurrentLine();
+	}
+
 	commitHistory();
 }
 

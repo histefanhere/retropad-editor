@@ -124,13 +124,14 @@
 						<span>X</span>
 						<input type='range' max=1 step=0.00001 id='x-range' aria-label='X position'>
 						<input type='number' step=any id='x-number' aria-label='X position'>
-						<button onclick='flipXcoord()'>Flip</button>
+						<button id='flip-x' onclick='flipCoord("x")'>Flip</button>
 					</div>
 
 					<div>
 						<span>Y</span>
 						<input type='range' max=1 step=0.00001 id='y-range' aria-label='Y position'>
 						<input type='number' step=any id='y-number' aria-label='Y position'>
+						<button id='flip-y' onclick='flipCoord("y")'>Flip</button>
 					</div>
 
 					<div>

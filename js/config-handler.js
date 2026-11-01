@@ -513,17 +513,13 @@ function ConfigHandler() {
 	}
 
 
-	this.flipXcoord = function () {
-		let x;
-		if (selectedButtonLineIndexes.length > 0) {
-			let c = this.getSelectionDimensions();
-			x = (1 - c.x).toFixed(5);
-			this.setSelectionSectionValue('x', x);
-		} else {
-			x = (1 - _getParamSectionValue(_strings[_currentLine], 'x')).toFixed(5);
-			this.setCurrentLineSectionValue('x', x);
-		}
-		return x;
+	this.flipSelection = function (axis) {
+		let indexes = selectedButtonLineIndexes.length > 0 ? selectedButtonLineIndexes : [_currentLine];
+
+		indexes.forEach(index => {
+			let value = (1 - _getParamSectionValue(_strings[index], axis)).toFixed(5);
+			_strings[index] = _editParamSection(_strings[index], axis, value);
+		});
 	}
 
 
