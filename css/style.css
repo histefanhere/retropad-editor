@@ -304,6 +304,45 @@ input[type=number] {
 	height: 1px;
 }
 
+#test-layer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 2;
+	cursor: crosshair;
+	touch-action: none;
+}
+
+.hit-area {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px dashed rgba(0, 80, 200, 0.7);
+	pointer-events: none;
+}
+
+.hit-area.radial {
+	border-radius: 50%;
+}
+
+.hit-area.pressed {
+	background-color: rgba(0, 200, 80, 0.5);
+	border-style: solid;
+}
+
+#test-readout {
+	position: absolute;
+	top: 4px;
+	left: 0;
+	right: 0;
+	text-align: center;
+	pointer-events: none;
+	font-weight: bold;
+	color: #06b;
+	text-shadow: 1px 1px #fff;
+}
+
 .rect.missing-image {
 	background-color: rgba(255, 150, 0, 0.3);
 	outline: 1px dashed #d60;

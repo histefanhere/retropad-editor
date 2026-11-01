@@ -29,6 +29,7 @@ let selectionBeforeMouseDown = [];
 let selectedBeforePress = null;
 let isSpaceHeld = false;
 let pendingExport = null;
+let isTestMode = false;
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -113,6 +114,7 @@ document.getElementById('chk-show-names').addEventListener('change', toggleNames
 document.getElementById('chk-show-portrait').addEventListener('change', toggleOrientation);
 document.getElementById('chk-show-offscreen').addEventListener('change', toggleOffscreen);
 document.getElementById('chk-snap').addEventListener('change', toggleSnap);
+document.getElementById('chk-test-mode').addEventListener('change', toggleTestMode);
 document.getElementById('overlay-selector').addEventListener('change', selectOverlay);
 
 document.getElementById('command-select').addEventListener('change', fillCommandField);
@@ -246,6 +248,85 @@ function createPadView() {
 			document.activeElement.blur();
 		});
 	}
+
+	if (isTestMode)
+		buildTestLayer(background);
+}
+
+
+function toggleTestMode(event) {
+	isTestMode = event.target.checked;
+
+	deselectAll();
+	conf.setCurrentLine(-1);
+	currentRect = null;
+	redrawPad();
+}
+
+
+function buildTestLayer(container) {
+	let layer = document.createElement('DIV');
+	layer.id = 'test-layer';
+
+	let readout = document.createElement('DIV');
+	readout.id = 'test-readout';
+	layer.appendChild(readout);
+
+	let areas = conf.getHitAreas(conf.getCurrentOverlay());
+	let areaElements = areas.map(area => {
+		let element = document.createElement('DIV');
+		element.classList.add('hit-area');
+		element.classList.toggle('radial', area.shape == 'radial');
+		element.style.left = (area.x - area.w) * 100 + '%';
+		element.style.top = (area.y - area.h) * 100 + '%';
+		element.style.width = area.w * 200 + '%';
+		element.style.height = area.h * 200 + '%';
+		layer.appendChild(element);
+		return element;
+	});
+
+	let pointers = new Map();
+
+	let update = () => {
+		let frame = layer.getBoundingClientRect();
+		let pressed = [];
+
+		areas.forEach((area, i) => {
+			let isPressed = Array.from(pointers.values()).some(p =>
+				conf.isPointInHitArea(area, (p.x - frame.left) / frame.width, (p.y - frame.top) / frame.height));
+
+			areaElements[i].classList.toggle('pressed', isPressed);
+			if (isPressed)
+				pressed.push(area.command);
+		});
+
+		readout.textContent = pressed.join(' + ');
+	};
+
+	let release = (event) => {
+		pointers.delete(event.pointerId);
+		update();
+	};
+
+	layer.addEventListener('pointerdown', event => {
+		layer.setPointerCapture(event.pointerId);
+		pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		update();
+	});
+	layer.addEventListener('pointermove', event => {
+		if (pointers.has(event.pointerId)) {
+			pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+			update();
+		}
+	});
+	layer.addEventListener('pointerup', release);
+	layer.addEventListener('pointercancel', release);
+
+	// Canvas selection must not start from this layer
+	layer.addEventListener('mousedown', event => event.stopPropagation());
+	layer.addEventListener('touchstart', event => event.stopPropagation());
+
+	container.appendChild(layer);
 }
 
 
@@ -1926,7 +2007,7 @@ function closeTopDialogOnEscape(event) {
 
 
 function handleShortcuts(event) {
-	if (document.querySelector('.dialog-container:not(.hidden)'))
+	if (isTestMode || document.querySelector('.dialog-container:not(.hidden)'))
 		return;
 
 	if (event.target.matches('input, textarea, select'))

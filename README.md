@@ -15,6 +15,7 @@ Features:
 - Export config and its images together as a ZIP archive.
 - Scale viewport for comfortable editing on small screens.
 - Display sensitivity range for analog sticks.
+- Test mode to try touch areas, and a check for problems before export.
 - Old format support (auto normalize integer overlays).
 - Non-fullscreen overlays support.
 
