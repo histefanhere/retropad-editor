@@ -13,6 +13,7 @@
 	<link rel='stylesheet' href='css/style.css'>
 
 	<script defer src='js/defaults.js'></script>
+	<script defer src='js/templates.js'></script>
 	<script defer src='js/config-handler.js'></script>
 	<script defer src='js/session-store.js'></script>
 	<script defer src='js/zip-writer.js'></script>
@@ -28,6 +29,7 @@
 			<button class='danger button--normal-size' onclick='showDialog("reset-dialog", true)'>Reset</button>
 			<button class='button--normal-size' id='undo-button' title='Undo (Ctrl+Z)' onclick='undo()' disabled>Undo</button>
 			<button class='button--normal-size' id='redo-button' title='Redo (Ctrl+Y)' onclick='redo()' disabled>Redo</button>
+			<button class='button--normal-size' onclick='showDialog("template-dialog", true)'>Templates</button>
 			<span id='header__caption'><img src='img/retroarch-icon.svg' alt=''>RetroPad Editor</span>
 		</div>
 
@@ -559,6 +561,25 @@
 				<div class='modal-dialog__footer-box'>
 					<button class='important' onclick='applyConfigText()'>Apply</button>
 					<button onclick='showDialog("config-text-dialog", false)'>Close</button>
+				</div>
+			</div>
+		</div>
+
+		<div id='template-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
+				<div class='modal-dialog__header-box'>
+					<span>Starter templates</span>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("template-dialog", false)'></button>
+				</div>
+				<div class='modal-dialog__content-box'>
+					<label for='template-select'>Gamepad</label>
+					<select id='template-select' class='js-dialog__focus'></select>
+					<br class='wide'>
+					<span class='small-warning'>Replaces current gamepad. You can undo this.</span>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button class='important' onclick='loadTemplate()'>Load</button>
+					<button onclick='showDialog("template-dialog", false)'>Cancel</button>
 				</div>
 			</div>
 		</div>

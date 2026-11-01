@@ -78,6 +78,7 @@ if (defaultImagesObj) // defaults.js
 let userImages = [];
 
 fillCommandSelector(buttonCommandList);
+fillTemplateSelector();
 fillImageSelector();
 
 let conf = new ConfigHandler();
@@ -1442,6 +1443,32 @@ function applyConfigText() {
 		renderConfig(previousConfig, true);
 		savedConfigStr = previousSaved;
 	}
+}
+
+
+function fillTemplateSelector() {
+	let select = document.getElementById('template-select');
+
+	padTemplates.forEach(template => {
+		let o = document.createElement('OPTION');
+		o.value = template.id;
+		o.appendChild(document.createTextNode(template.name));
+		select.appendChild(o);
+	});
+}
+
+
+function loadTemplate() {
+	let id = document.getElementById('template-select').value;
+	let template = padTemplates.find(t => t.id == id);
+
+	showDialog('template-dialog', false);
+
+	currentRect = null;
+	renderConfig(template.config, true);
+	configStr = template.config;
+	importedFilename = template.id + '.cfg';
+	resetExportFilename();
 }
 
 
