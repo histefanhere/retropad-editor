@@ -703,6 +703,11 @@ input[type=number] {
 	border-radius: 3px;
 }
 
+.help-label {
+	cursor: help;
+	border-bottom: 1px dotted currentColor;
+}
+
 .small-warning {
 	font-size: 0.7em;
 	color: #f75;
