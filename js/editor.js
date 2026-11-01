@@ -822,6 +822,7 @@ function loadConfigFromFile(e) {
 			renderConfig(ev.target.result);
 			configStr = ev.target.result;
 			importedFilename = file.name;
+			resetExportFilename();
 		} catch {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
@@ -1324,14 +1325,38 @@ function applyScreenDimensions() {
 function exportConfig() {
 	let configText = conf.getConfigString();
 	let file = new Blob([configText], { type: 'text/plain' });
-	let a = document.createElement('A');
-	a.href = URL.createObjectURL(file);
-	a.download = 'new-' + importedFilename.replace(/^new-/, '');
-	a.click();
-	setTimeout(() => URL.revokeObjectURL(a.href), 0);
+	downloadBlob(file, getExportFilename());
 
 	savedConfigStr = configText;
 	scheduleAutosave();
+}
+
+
+function downloadBlob(blob, filename) {
+	let a = document.createElement('A');
+	a.href = URL.createObjectURL(blob);
+	a.download = filename;
+	a.click();
+	setTimeout(() => URL.revokeObjectURL(a.href), 0);
+}
+
+
+function getDefaultExportFilename() {
+	return 'new-' + importedFilename.replace(/^new-/, '');
+}
+
+
+function resetExportFilename() {
+	document.getElementById('export-filename').value = getDefaultExportFilename();
+}
+
+
+function getExportFilename() {
+	let name = document.getElementById('export-filename').value.trim().replace(/[\\/:*?"<>|]/g, '');
+	if (!name)
+		return getDefaultExportFilename();
+
+	return /\.cfg$/i.test(name) ? name : name + '.cfg';
 }
 
 
@@ -2157,6 +2182,10 @@ function hideScreenSizeDialog() {
 
 function showFileDialog() {
 	document.getElementById('chk-show-screenshot').disabled = !screen.shotImage;
+
+	if (!document.getElementById('export-filename').value)
+		resetExportFilename();
+
 	showDialog('import-export-dialog', true);
 }
 
