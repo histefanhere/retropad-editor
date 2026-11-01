@@ -23,7 +23,6 @@ const NUDGE_STEP = 0.001;
 const NUDGE_STEP_LARGE = 0.01;
 const DUPLICATE_OFFSET = 0.02;
 const NEW_BUTTON_HALF_HEIGHT = 0.08;
-const COMPACT_SCREEN_WIDTH = 600;
 const CUSTOM_COMMAND = '__custom';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const THEME_COLORS = { light: '#fbfaf7', dark: '#1c1b1f' };
@@ -282,6 +281,31 @@ function createPadView() {
 
 	if (isTestMode)
 		buildTestLayer(background);
+
+	keepLabelsOnScreen();
+}
+
+
+// Names of buttons at the screen edge are moved inside, so they are not cut off
+function keepLabelsOnScreen() {
+	let bounds = document.getElementById('screenpad').getBoundingClientRect();
+
+	document.querySelectorAll('#screenpad .rect__label').forEach(label => {
+		let rect = label.parentElement.getBoundingClientRect();
+		let isOutside = rect.right <= bounds.left || rect.left >= bounds.right || rect.bottom <= bounds.top || rect.top >= bounds.bottom;
+		let shiftX = 0;
+		let shiftY = 0;
+
+		if (!isOutside) {
+			let size = label.getBoundingClientRect();
+			let left = rect.left + (rect.width - size.width) / 2;
+			shiftX = Math.max(bounds.left - left, 0) + Math.min(bounds.right - left - size.width, 0);
+			shiftY = Math.max(bounds.top + size.height - rect.bottom, 0) + Math.min(bounds.bottom - rect.bottom, 0);
+		}
+
+		label.style.setProperty('--label-shift-x', shiftX + 'px');
+		label.style.setProperty('--label-shift-y', shiftY + 'px');
+	});
 }
 
 
@@ -1379,7 +1403,6 @@ function updateScreenSize() {
 
 	s.style.width = screen.width + 'px';
 	s.style.height = screen.height + 'px';
-	s.classList.toggle('is-compact', screen.width < COMPACT_SCREEN_WIDTH);
 
 	let shotWidth = screen.shotFrameWidth * screen.zoom;
 	let shotHeight = screen.shotFrameHeight * screen.zoom;
@@ -1393,6 +1416,8 @@ function updateScreenSize() {
 		d.style.top = 0;
 	else
 		d.style.top = (screen.height - shotHeight) / 2 + 'px';
+
+	keepLabelsOnScreen();
 }
 
 
@@ -1777,6 +1802,7 @@ function updateCurrentLine(section, value) {
 		currentRect.style.width = rw + '%';
 		currentRect.style.left = rx + '%';
 		currentRect.style.top = ry + '%';
+		keepLabelsOnScreen();
 	}
 }
 
@@ -2542,6 +2568,8 @@ function toggleNames(event) {
 		s.classList.remove('hide-names');
 	else
 		s.classList.add('hide-names');
+
+	keepLabelsOnScreen();
 }
 
 

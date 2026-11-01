@@ -1170,7 +1170,7 @@ input[type=radio]:not(.visually-hidden) {
 	position: absolute;
 	left: 50%;
 	bottom: 0;
-	transform: translateX(-50%);
+	transform: translate(calc(-50% + var(--label-shift-x, 0px)), var(--label-shift-y, 0px));
 	padding: 0 4px;
 	border-radius: 3px;
 	background: rgba(10, 10, 14, 0.74);
@@ -1195,11 +1195,6 @@ input[type=radio]:not(.visually-hidden) {
 }
 
 .hide-names .rect__label {
-	display: none;
-}
-
-/* Names would cover the buttons on a small screen, so only the selection is named */
-.is-compact .rect:not(.selected) .rect__label {
 	display: none;
 }
 

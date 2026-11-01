@@ -256,6 +256,12 @@ async function main() {
 	const phoneScreen = await page.locator('#screenpad').boundingBox();
 	check('phone: screen fits width', phoneScreen.x >= 0 && phoneScreen.x + phoneScreen.width <= 390, phoneScreen.width);
 	check('phone: screen is usable size', phoneScreen.width > 300, phoneScreen.width);
+	const namesShown = () => page.$$eval('.rect__label', labels => labels.length > 0 && labels.every(label => getComputedStyle(label).display != 'none'));
+	check('phone: button names visible', await namesShown());
+	await page.evaluate(() => document.getElementById('chk-show-names').click());
+	check('phone: button names can be hidden', await page.$$eval('.rect__label', labels => labels.every(label => getComputedStyle(label).display == 'none')));
+	await page.evaluate(() => document.getElementById('chk-show-names').click());
+	check('phone: button names return', await namesShown());
 	await page.click('#tab-outline');
 	check('phone: one panel at a time', await page.locator('#panel-outline').isVisible() && await page.locator('#inspector').isHidden());
 	await page.setViewportSize({ width: 780, height: 380 });
