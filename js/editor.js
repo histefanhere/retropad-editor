@@ -10,12 +10,17 @@ const manualScaleParams = 'block_x_separation = false\nblock_y_separation = fals
 
 const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
+const HISTORY_LIMIT = 100;
 
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
 let currentRect;
 let suppressRectClick = false;
 let cancelActiveDrag = null;
+
+let undoStack = [];
+let redoStack = [];
+let historyCurrentStr;
 
 let screen = {
 	_width: DEF_WIDTH,
@@ -79,6 +84,9 @@ renderConfig(configStr);
 		applyButtonParam(elem, e.target.value);
 		range.value = e.target.value;
 	});
+
+	range.addEventListener('change', commitHistory);
+	text.addEventListener('change', commitHistory);
 });
 
 document.getElementById('chk-show-shapes').addEventListener('change', toggleShapes);
@@ -273,6 +281,9 @@ function trackPointerDrag(element, startEvent, onMove) {
 		element.removeEventListener('pointerup', end);
 		element.removeEventListener('pointercancel', end);
 		cancelActiveDrag = null;
+
+		if (isMoved)
+			commitHistory();
 	}
 }
 
@@ -531,7 +542,7 @@ function loadConfigFromFile(e) {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
 			alert(errMsg + '\nPrevious config is restored.');
-			renderConfig(previousConfig);
+			renderConfig(previousConfig, true);
 			savedConfigStr = previousSaved;
 			e.target.value = '';
 			document.getElementById('load-config-filename').textContent = '';
@@ -541,7 +552,7 @@ function loadConfigFromFile(e) {
 }
 
 
-function renderConfig(str) {
+function renderConfig(str, keepHistory) {
 	conf.convertCfgToArray(str, () => {
 		buildAndSetOverlaySelectors(0);
 
@@ -551,6 +562,9 @@ function renderConfig(str) {
 		setScreenDimensions();
 		redrawPad();
 		savedConfigStr = conf.getConfigString();
+
+		if (!keepHistory)
+			resetHistory();
 	},
 		images);
 }
@@ -676,6 +690,66 @@ function redrawPad() {
 	refreshScreenshot();
 	createPadView();
 	enableEditor(false);
+	commitHistory();
+}
+
+
+function commitHistory() {
+	let current = conf.getConfigString();
+	if (current == historyCurrentStr)
+		return;
+
+	undoStack.push(historyCurrentStr);
+	if (undoStack.length > HISTORY_LIMIT)
+		undoStack.shift();
+
+	redoStack.length = 0;
+	historyCurrentStr = current;
+	updateHistoryButtons();
+}
+
+
+function resetHistory() {
+	undoStack.length = 0;
+	redoStack.length = 0;
+	historyCurrentStr = conf.getConfigString();
+	updateHistoryButtons();
+}
+
+
+function undo() {
+	if (undoStack.length == 0)
+		return;
+
+	redoStack.push(historyCurrentStr);
+	applyHistoryState(undoStack.pop());
+}
+
+
+function redo() {
+	if (redoStack.length == 0)
+		return;
+
+	undoStack.push(historyCurrentStr);
+	applyHistoryState(redoStack.pop());
+}
+
+
+function applyHistoryState(str) {
+	historyCurrentStr = str;
+	conf.restoreConfigString(str);
+	currentRect = null;
+
+	buildAndSetOverlaySelectors(conf.getCurrentOverlay());
+	setScreenDimensions();
+	redrawPad();
+	updateHistoryButtons();
+}
+
+
+function updateHistoryButtons() {
+	document.getElementById('undo-button').disabled = undoStack.length == 0;
+	document.getElementById('redo-button').disabled = redoStack.length == 0;
 }
 
 
@@ -1214,6 +1288,7 @@ function flipXcoord() {
 	document.getElementById('x-number').value = x;
 	updateCurrentLine();
 	syncSelectedButtons();
+	commitHistory();
 }
 
 
@@ -1223,6 +1298,7 @@ function normalizeHeight() {
 	document.getElementById('h-number').value = h;
 	updateCurrentLine();
 	syncSelectedButtons();
+	commitHistory();
 }
 
 
@@ -1232,6 +1308,7 @@ function normalizeWidth() {
 	document.getElementById('w-number').value = w;
 	updateCurrentLine();
 	syncSelectedButtons();
+	commitHistory();
 }
 
 

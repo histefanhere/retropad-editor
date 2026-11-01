@@ -24,6 +24,8 @@
 		<div id='header'>
 			<button class='important' onclick='showFileDialog()'>Import • Export</button>
 			<button class='danger button--normal-size' onclick='showDialog("reset-dialog", true)'>Reset</button>
+			<button class='button--normal-size' id='undo-button' onclick='undo()' disabled>Undo</button>
+			<button class='button--normal-size' id='redo-button' onclick='redo()' disabled>Redo</button>
 			<span id='header__caption'><img src='img/retroarch-icon.svg' alt=''>RetroPad Editor</span>
 		</div>
 

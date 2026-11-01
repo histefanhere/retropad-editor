@@ -26,6 +26,13 @@ function ConfigHandler() {
 	}
 
 
+	this.restoreConfigString = function (str) {
+		_strings = str.split('\n');
+		_currentLine = -1;
+		selectedButtonLineIndexes.length = 0;
+	}
+
+
 	this.setCurrentLine = function (index) {
 		if (index == -1 || _isOverlayXX_descYY(_strings[index]))
 			_currentLine = index;
