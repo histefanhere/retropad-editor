@@ -102,6 +102,26 @@ async function main() {
 	await page.keyboard.press('Control+z');
 	check('undo restores config', await config() == imported);
 
+	// Snapping marks the button that is snapped to
+	const isTarget = text => button(text).evaluate(e => e.classList.contains('snap-target'));
+	await page.locator('label:has(#chk-snap)').evaluate(e => { if (!e.querySelector('input').checked) e.click(); });
+	await page.mouse.move(startX, startY);
+	await page.mouse.down();
+	await page.mouse.move(startX + box.width * 0.296, startY, { steps: 3 });
+	check('snap marks target button', await isTarget('c') && !await isTarget('a'));
+	check('snap target is named', await button('c').locator('.rect__label').isVisible());
+	await page.keyboard.down('Alt');
+	await page.mouse.move(startX + box.width * 0.297, startY);
+	check('Alt clears snap target', await page.locator('.snap-target').count() == 0);
+	await page.keyboard.up('Alt');
+	await page.mouse.move(startX + box.width * 0.296, startY);
+	check('snap target shows again', await isTarget('c'));
+	await page.mouse.up();
+	check('drop clears snap target', await page.locator('.snap-target, .snap-guide').count() == 0);
+	check('dragged button aligned to target', near((await desc(1)).x, 0.8), (await desc(1)).x);
+	await page.keyboard.press('Control+z');
+	await page.locator('label:has(#chk-snap)').evaluate(e => { if (e.querySelector('input').checked) e.click(); });
+
 	// Keyboard
 	await button('b').click();
 	await page.keyboard.press('Shift+ArrowRight');

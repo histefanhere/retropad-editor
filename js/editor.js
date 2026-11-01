@@ -12,6 +12,7 @@ const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
 const SNAP_THRESHOLD = 0.008;
 const SNAP_GRID_STEP = 0.05;
+const SNAP_LINE_TOLERANCE = 0.00001;
 const ZOOM_FACTOR = 1.25;
 const ZOOM_MIN = 0.05;
 const ZOOM_MAX = 5;
@@ -565,6 +566,8 @@ function onRectPointerDown(event, rect, lineIndex) {
 			x += snapX ? snapX.delta : 0;
 			y += snapY ? snapY.delta : 0;
 			showSnapGuides(rect.parentElement, snapX, snapY);
+		} else {
+			removeSnapGuides();
 		}
 
 		setButtonParam('x', x);
@@ -581,15 +584,15 @@ function isSnapActive(event) {
 // Lines of buttons that are not moved
 function getSnapLines() {
 	let selected = conf.isGroupSelected() ? conf.getSelectedIndexes() : [conf.getCurrentLine()];
-	let lines = { x: [0.5], y: [0.5] };
+	let lines = { x: [{ value: 0.5, target: null }], y: [{ value: 0.5, target: null }] };
 
 	conf.buildPadFromConfig().forEach(b => {
 		if (selected.includes(b.i))
 			return;
 
 		let x = Number(b.x), y = Number(b.y), w = Number(b.w), h = Number(b.h);
-		lines.x.push(x - w, x, x + w);
-		lines.y.push(y - h, y, y + h);
+		[x - w, x, x + w].forEach(value => lines.x.push({ value: value, target: b.i }));
+		[y - h, y, y + h].forEach(value => lines.y.push({ value: value, target: b.i }));
 	});
 
 	return lines;
@@ -612,7 +615,14 @@ function findSnap(values, lines) {
 		return best;
 	};
 
-	return closest(() => lines) || closest(value => [Math.round(value / SNAP_GRID_STEP) * SNAP_GRID_STEP]);
+	let lineValues = lines.map(line => line.value);
+	let snap = closest(() => lineValues) || closest(value => [Math.round(value / SNAP_GRID_STEP) * SNAP_GRID_STEP]);
+
+	// Several buttons can share the line, so all of them are targets
+	if (snap)
+		snap.targets = lines.filter(line => line.target !== null && Math.abs(line.value - snap.line) < SNAP_LINE_TOLERANCE).map(line => line.target);
+
+	return snap;
 }
 
 
@@ -628,12 +638,19 @@ function showSnapGuides(container, snapX, snapY) {
 		guide.classList.add('snap-guide--' + axis);
 		guide.style[axis == 'x' ? 'left' : 'top'] = (snap.line * 100) + '%';
 		container.appendChild(guide);
+
+		snap.targets.forEach(target => {
+			let rect = container.querySelector('.rect[data-line-index="' + target + '"]');
+			if (rect)
+				rect.classList.add('snap-target');
+		});
 	});
 }
 
 
 function removeSnapGuides() {
 	document.querySelectorAll('.snap-guide').forEach(e => e.remove());
+	document.querySelectorAll('.snap-target').forEach(e => e.classList.remove('snap-target'));
 }
 
 
@@ -662,6 +679,8 @@ function onResizeHandlePointerDown(event, rect, signX, signY) {
 			w = Math.max(MIN_BUTTON_SIZE, w + (snapX ? signX * snapX.delta / 2 : 0));
 			h = Math.max(MIN_BUTTON_SIZE, h + (snapY ? signY * snapY.delta / 2 : 0));
 			showSnapGuides(rect.parentElement, snapX, snapY);
+		} else {
+			removeSnapGuides();
 		}
 
 		if (moveEvent.shiftKey && start.w > 0 && start.h > 0) {
