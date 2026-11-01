@@ -31,6 +31,10 @@ Keyboard shortcuts:
 - Ctrl+D: duplicate selection.
 - Esc: close dialog or clear selection.
 - Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z: undo, redo.
+
+Development:
+- The site is static files with no build step.
+- `npm test` runs unit tests.
 ---
 Libretro Docs: https://docs.libretro.com/development/retroarch/input/overlay/
 

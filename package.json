@@ -1,0 +1,9 @@
+{
+	"name": "retropad-editor",
+	"private": true,
+	"description": "Edit onscreen gamepads for RetroArch",
+	"scripts": {
+		"test": "node --test tests/unit/"
+	},
+	"license": "GPL-3.0-only"
+}
