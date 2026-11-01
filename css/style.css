@@ -613,6 +613,20 @@ input[type=radio]:not(.visually-hidden) {
 	color: var(--text-muted);
 }
 
+.device-row {
+	display: flex;
+	gap: 6px;
+}
+
+.device-row select {
+	flex: 1;
+	min-width: 0;
+}
+
+.device-row .btn {
+	flex: none;
+}
+
 .field-inline {
 	display: flex;
 	align-items: center;
@@ -1227,6 +1241,20 @@ input[type=radio]:not(.visually-hidden) {
 	left: 0;
 	right: 0;
 	height: 1px;
+}
+
+#screenpad .rect.snap-target {
+	outline: 2px solid #ff4fd8;
+	outline-offset: 0;
+	background-color: rgba(255, 79, 216, 0.2);
+	z-index: 1;
+}
+
+/* The target is named even when names are hidden */
+#screenpad .rect.snap-target .rect__label {
+	display: block;
+	background: #ff4fd8;
+	color: #2a0020;
 }
 
 #screenpad .rect>.resize-handle {

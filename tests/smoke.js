@@ -102,6 +102,26 @@ async function main() {
 	await page.keyboard.press('Control+z');
 	check('undo restores config', await config() == imported);
 
+	// Snapping marks the button that is snapped to
+	const isTarget = text => button(text).evaluate(e => e.classList.contains('snap-target'));
+	await page.locator('label:has(#chk-snap)').evaluate(e => { if (!e.querySelector('input').checked) e.click(); });
+	await page.mouse.move(startX, startY);
+	await page.mouse.down();
+	await page.mouse.move(startX + box.width * 0.296, startY, { steps: 3 });
+	check('snap marks target button', await isTarget('c') && !await isTarget('a'));
+	check('snap target is named', await button('c').locator('.rect__label').isVisible());
+	await page.keyboard.down('Alt');
+	await page.mouse.move(startX + box.width * 0.297, startY);
+	check('Alt clears snap target', await page.locator('.snap-target').count() == 0);
+	await page.keyboard.up('Alt');
+	await page.mouse.move(startX + box.width * 0.296, startY);
+	check('snap target shows again', await isTarget('c'));
+	await page.mouse.up();
+	check('drop clears snap target', await page.locator('.snap-target, .snap-guide').count() == 0);
+	check('dragged button aligned to target', near((await desc(1)).x, 0.8), (await desc(1)).x);
+	await page.keyboard.press('Control+z');
+	await page.locator('label:has(#chk-snap)').evaluate(e => { if (e.querySelector('input').checked) e.click(); });
+
 	// Keyboard
 	await button('b').click();
 	await page.keyboard.press('Shift+ArrowRight');
@@ -203,6 +223,49 @@ async function main() {
 	await page.click('#undo-button');
 	await page.click('#overlay-list li:nth-child(1) button');
 	check('overlay edits can be undone', await config() == imported);
+
+	// Custom devices
+	const deviceOptions = () => page.locator('#device-custom-group option').allTextContents();
+	const addDevice = async (name, long, short) => {
+		await page.click('#device-add-button');
+		await page.fill('#device-name', name);
+		await page.fill('#device-width', long);
+		await page.fill('#device-height', short);
+		await page.click('#device-create-button');
+	};
+	const originalSize = [await page.inputValue('#display-width'), await page.inputValue('#display-height')];
+	await addDevice('', '1000', '500');
+	check('device needs a name', await page.locator('#device-error').isVisible());
+	await page.fill('#device-name', 'Zero');
+	await page.fill('#device-width', '0');
+	await page.click('#device-create-button');
+	check('device needs a size', await page.locator('#device-error').isVisible() && (await deviceOptions()).length == 0);
+	await page.fill('#device-width', '1000');
+	await page.fill('#device-name', 'My Retroid');
+	await page.fill('#device-height', '1600');
+	await page.keyboard.press('Enter');
+	check('device is added and sorted long side first', (await deviceOptions())[0] == 'My Retroid (1600 × 1000)', await deviceOptions());
+	check('new device applies its size', await page.inputValue('#display-width') == '1600' && await page.inputValue('#display-height') == '1000');
+	check('new device is selected', await page.inputValue('#device-preset') == '1600x1000');
+	await addDevice('my retroid', '800', '600');
+	check('duplicate device name shows error', await page.locator('#device-error').isVisible());
+	await page.click('#device-create-dialog .dialog-footer .btn');
+	await addDevice('Same as Deck', '1280', '800');
+	await page.selectOption('#device-preset', { label: 'Steam Deck (1280 × 800)' });
+	check('built-in with same size stays chosen', await page.locator('#device-preset option:checked').textContent() == 'Steam Deck (1280 × 800)');
+	check('built-in device cannot be deleted', await page.locator('#device-delete-button').isHidden());
+	await page.selectOption('#device-preset', { label: 'Same as Deck (1280 × 800)' });
+	await page.click('#device-delete-button');
+	check('device deletes', (await deviceOptions()).length == 1);
+	await page.click('.toast button:has-text("Undo")');
+	check('device delete can be undone', (await deviceOptions()).length == 2);
+	const devicePage = await context.newPage();
+	await devicePage.goto(url);
+	check('devices stay after reload', await devicePage.locator('#device-custom-group option').count() == 2);
+	await devicePage.close();
+	await page.fill('#display-width', originalSize[0]);
+	await page.fill('#display-height', originalSize[1]);
+	await page.locator('#display-height').blur();
 
 	// Zoom and test mode
 	await page.click('#zoom-in');
