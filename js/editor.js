@@ -17,6 +17,8 @@ const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 5;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
+const PREFERENCES_KEY = 'retropad-editor-preferences';
+const PREFERENCE_CHECKBOXES = ['chk-show-shapes', 'chk-show-names', 'chk-show-offscreen', 'chk-snap'];
 const NUDGE_STEP = 0.001;
 const NUDGE_STEP_LARGE = 0.01;
 const DUPLICATE_OFFSET = 0.02;
@@ -31,6 +33,8 @@ let isSpaceHeld = false;
 let pendingExport = null;
 let isTestMode = false;
 let dialogFocusStack = [];
+let isLoadingPreferences = true;
+let colorSchemeIndex = 0;
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -187,6 +191,9 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 	setAppTheme(document.getElementById('app-theme').value);
 });
 setAppTheme('auto');
+
+PREFERENCE_CHECKBOXES.forEach(id => document.getElementById(id).addEventListener('change', savePreferences));
+loadPreferences();
 
 checkForSavedSession();
 
@@ -1330,6 +1337,7 @@ function setZoom(value) {
 	screen.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
 	document.getElementById('zoom-value').textContent = Math.round(screen.zoom * 100) + '%';
 	updateScreenSize();
+	savePreferences();
 }
 
 
@@ -1464,6 +1472,7 @@ function applyScreenDimensions() {
 	setScreenDimensions(w, h, sw, sh);
 
 	redrawPad();
+	savePreferences();
 }
 
 
@@ -2773,10 +2782,81 @@ function setAppTheme(theme) {
 	let isDark = theme == 'dark' || (theme == 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 	document.body.classList.toggle('dark', isDark);
 	document.getElementById('app-theme').value = theme;
+	savePreferences();
+}
+
+
+function savePreferences() {
+	if (isLoadingPreferences)
+		return;
+
+	let checkboxes = {};
+	PREFERENCE_CHECKBOXES.forEach(id => { checkboxes[id] = document.getElementById(id).checked });
+
+	let preferences = {
+		checkboxes: checkboxes,
+		appTheme: document.getElementById('app-theme').value,
+		colorScheme: colorSchemeIndex,
+		zoom: screen.zoom,
+		screen: screen.isSetByUser ? { _width: screen._width, _height: screen._height, isSetByUser: true, scale: screen.scale } : null,
+	};
+
+	try {
+		localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+	} catch {
+		// Editor works without saved preferences
+	}
+}
+
+
+function loadPreferences() {
+	let preferences = null;
+
+	try {
+		preferences = JSON.parse(localStorage.getItem(PREFERENCES_KEY));
+	} catch {
+		// Use defaults
+	}
+
+	if (preferences)
+		applyPreferences(preferences);
+
+	isLoadingPreferences = false;
+}
+
+
+function applyPreferences(preferences) {
+	PREFERENCE_CHECKBOXES.forEach(id => {
+		let checkbox = document.getElementById(id);
+		if (preferences.checkboxes && id in preferences.checkboxes && checkbox.checked != preferences.checkboxes[id]) {
+			checkbox.checked = preferences.checkboxes[id];
+			checkbox.dispatchEvent(new Event('change'));
+		}
+	});
+
+	if (preferences.appTheme)
+		setAppTheme(preferences.appTheme);
+
+	if (preferences.colorScheme) {
+		document.getElementById('color-scheme-' + preferences.colorScheme).checked = true;
+		setColorScheme(preferences.colorScheme);
+	}
+
+	if (preferences.screen) {
+		Object.assign(screen, preferences.screen);
+		setScreenDimensions();
+		redrawPad();
+	}
+
+	if (preferences.zoom)
+		setZoom(preferences.zoom);
 }
 
 
 function setColorScheme(index) {
+	colorSchemeIndex = index;
+	savePreferences();
+
 	let screenpad = document.getElementById('screenpad');
 	screenpad.classList.remove('scheme-1');
 	screenpad.classList.remove('scheme-2');
