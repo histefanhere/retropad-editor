@@ -97,8 +97,8 @@
 					</div>
 				</div>
 
-				<div class='toolbar-group'>
-					<span class='group-header'>ALIGN</span>
+				<details class='toolbar-group' id='align-group'>
+					<summary class='group-header'>ALIGN</summary>
 					<div class='toolbar-group__buttons' id='align-buttons'>
 						<button class='button--normal-size' onclick='alignSelection("left")'>Left</button>
 						<button class='button--normal-size' onclick='alignSelection("hcenter")'>Center</button>
@@ -109,7 +109,7 @@
 						<button class='button--normal-size' onclick='distributeSelection("x")' title='Space evenly from left to right'>Spread X</button>
 						<button class='button--normal-size' onclick='distributeSelection("y")' title='Space evenly from top to bottom'>Spread Y</button>
 					</div>
-				</div>
+				</details>
 
 				<div class='toolbar-group'>
 					<span class='group-header'>BUTTON</span>
@@ -123,10 +123,10 @@
 						<button id='mirror-button' title='Copy to the other side of the screen' onclick='mirrorSelection()'>Mirror copy</button>
 					</div>
 				</div>
-				<div class='toolbar-group' id='button-list-group'>
-					<span class='group-header'>BUTTON LIST</span>
+				<details class='toolbar-group' id='button-list-group'>
+					<summary class='group-header'>BUTTON LIST</summary>
 					<ul id='button-list' class='notranslate' translate='no'></ul>
-				</div>
+				</details>
 			</div>
 
 			<div id='editor-container' class='notranslate' translate='no'>

@@ -82,6 +82,8 @@ input[type=number] {
 	#editor-container {
 		flex-basis: 0;
 		min-width: 0;
+		position: sticky;
+		top: 0;
 	}
 }
 
@@ -101,6 +103,15 @@ input[type=number] {
 	margin: 0.5vw;
 	padding: 0 1vw 0.5vw 1vw;
 	border-bottom: 1px solid #ccd;
+}
+
+#overlay-selector {
+	max-width: 8em;
+}
+
+summary.group-header {
+	display: list-item;
+	cursor: pointer;
 }
 
 .toolbar-group__checkboxes {
