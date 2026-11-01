@@ -4,7 +4,7 @@ Online tool to create and edit onscreen gamepads for RetroArch.
 https://valent-in.github.io/retropad-editor/
 
 Features:
-- Create, move, resize buttons of virtual gamepad.
+- Create, move, resize buttons of virtual gamepad (drag buttons and their corner handles, or use sliders).
 - Multiple layers; auto switch orientation for portrait overlays.
 - Fix overlay aspect ratio.
 - Import image resources in addition to 'flat' image set.

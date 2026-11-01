@@ -8,9 +8,14 @@ const defaultParamsForNewOverlay = 'full_screen = true\nnormalized = true\nrange
 const autoScaleParams = 'auto_x_separation = true\n'; //auto_y_separation = ?
 const manualScaleParams = 'block_x_separation = false\nblock_y_separation = false';
 
+const DRAG_THRESHOLD_PX = 3;
+const MIN_BUTTON_SIZE = 0.001;
+
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
 let currentRect;
+let suppressRectClick = false;
+let cancelActiveDrag = null;
 
 let screen = {
 	_width: DEF_WIDTH,
@@ -91,6 +96,8 @@ document.getElementById('load-button-images').addEventListener('change', loadIma
 document.getElementById('load-screenshot').addEventListener('change', loadScreenshotFile);
 document.getElementById('chk-show-screenshot').addEventListener('change', toggleScreenshot);
 
+window.addEventListener('pointerdown', () => { suppressRectClick = false }, true);
+
 document.addEventListener('keydown', closeTopDialogOnEscape);
 window.addEventListener('beforeunload', warnAboutUnsavedChanges);
 
@@ -127,26 +134,180 @@ function createPadView() {
 		if (conf.isLineInSelection(r.i))
 			b.classList.add('selected');
 
+		b.addEventListener('pointerdown', e => onRectPointerDown(e, b, r.i));
+
+		// Shift + drag starts selection box from a button
+		b.addEventListener('mousedown', e => {
+			if (!e.shiftKey) {
+				e.stopPropagation();
+				e.preventDefault();
+			}
+		});
+
 		b.addEventListener('click', () => {
-			if (currentRect)
-				currentRect.classList.remove('selected');
+			if (suppressRectClick) {
+				suppressRectClick = false;
+				return;
+			}
 
-			conf.setCurrentLine(r.i);
-			currentRect = b;
-
-			b.classList.add('selected');
-
-			'xywh'.split('').forEach(elem => {
-				let range = document.getElementById(elem + '-range');
-				let text = document.getElementById(elem + '-number');
-				text.value = conf.getCurrentLineSectionValue(elem);
-				range.value = conf.getCurrentLineSectionValue(elem);
-			});
-
-			enableEditor(true);
+			selectRect(b, r.i);
 			document.activeElement.blur();
 		});
 	}
+}
+
+
+function selectRect(rect, lineIndex) {
+	deselectAll();
+
+	conf.setCurrentLine(lineIndex);
+	currentRect = rect;
+
+	rect.classList.add('selected');
+	showResizeHandles(rect);
+
+	'xywh'.split('').forEach(elem => {
+		let range = document.getElementById(elem + '-range');
+		let text = document.getElementById(elem + '-number');
+		text.value = conf.getCurrentLineSectionValue(elem);
+		range.value = conf.getCurrentLineSectionValue(elem);
+	});
+
+	enableEditor(true);
+}
+
+
+function onRectPointerDown(event, rect, lineIndex) {
+	if (event.button != 0 || event.shiftKey)
+		return;
+
+	// Touch: first tap selects, so pad area can still be scrolled
+	if (event.pointerType != 'mouse' && !rect.classList.contains('selected'))
+		return;
+
+	document.activeElement.blur();
+
+	if (!rect.classList.contains('selected'))
+		selectRect(rect, lineIndex);
+
+	let start = conf.getSelectionDimensions() || {
+		x: Number(conf.getCurrentLineSectionValue('x')),
+		y: Number(conf.getCurrentLineSectionValue('y')),
+	};
+	let frame = rect.parentElement.getBoundingClientRect();
+
+	trackPointerDrag(rect, event, (dx, dy) => {
+		setButtonParam('x', start.x + dx / frame.width);
+		setButtonParam('y', start.y + dy / frame.height);
+	});
+}
+
+
+function onResizeHandlePointerDown(event, rect, signX, signY) {
+	event.stopPropagation();
+	if (event.button != 0)
+		return;
+
+	document.activeElement.blur();
+
+	let start = {};
+	'xywh'.split('').forEach(elem => {
+		start[elem] = Number(conf.getCurrentLineSectionValue(elem));
+	});
+	let frame = rect.parentElement.getBoundingClientRect();
+
+	// x, y are center coordinates and w, h are half sizes; opposite corner stays in place
+	trackPointerDrag(event.target, event, (dx, dy, moveEvent) => {
+		let w = Math.max(MIN_BUTTON_SIZE, start.w + signX * dx / frame.width / 2);
+		let h = Math.max(MIN_BUTTON_SIZE, start.h + signY * dy / frame.height / 2);
+
+		if (moveEvent.shiftKey && start.w > 0 && start.h > 0) {
+			let scale = Math.max(w / start.w, h / start.h);
+			w = start.w * scale;
+			h = start.h * scale;
+		}
+
+		setButtonParam('w', w);
+		setButtonParam('h', h);
+		setButtonParam('x', start.x + signX * (w - start.w));
+		setButtonParam('y', start.y + signY * (h - start.h));
+	});
+}
+
+
+function trackPointerDrag(element, startEvent, onMove) {
+	let pointerId = startEvent.pointerId;
+	let startX = startEvent.clientX;
+	let startY = startEvent.clientY;
+	let isMoved = false;
+
+	element.setPointerCapture(pointerId);
+	element.addEventListener('pointermove', move);
+	element.addEventListener('pointerup', end);
+	element.addEventListener('pointercancel', end);
+
+	cancelActiveDrag = stop;
+
+	function move(event) {
+		if (event.pointerId != pointerId)
+			return;
+
+		let dx = event.clientX - startX;
+		let dy = event.clientY - startY;
+
+		if (!isMoved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX)
+			return;
+
+		isMoved = true;
+		suppressRectClick = true;
+		onMove(dx, dy, event);
+	}
+
+	function end(event) {
+		if (event.pointerId == pointerId)
+			stop();
+	}
+
+	function stop() {
+		element.removeEventListener('pointermove', move);
+		element.removeEventListener('pointerup', end);
+		element.removeEventListener('pointercancel', end);
+		cancelActiveDrag = null;
+	}
+}
+
+
+function setButtonParam(section, value) {
+	let rounded = Number(value.toFixed(5));
+	applyButtonParam(section, rounded);
+	document.getElementById(section + '-number').value = rounded;
+	document.getElementById(section + '-range').value = rounded;
+}
+
+
+function showResizeHandles(rect) {
+	removeResizeHandles();
+
+	[[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([signX, signY]) => {
+		let handle = document.createElement('DIV');
+		handle.classList.add('resize-handle');
+		handle.classList.add(signX == signY ? 'resize-handle--nwse' : 'resize-handle--nesw');
+		handle.style.left = signX < 0 ? '0' : '100%';
+		handle.style.top = signY < 0 ? '0' : '100%';
+
+		handle.addEventListener('mousedown', e => {
+			e.stopPropagation();
+			e.preventDefault();
+		});
+		handle.addEventListener('pointerdown', e => onResizeHandlePointerDown(e, rect, signX, signY));
+
+		rect.appendChild(handle);
+	});
+}
+
+
+function removeResizeHandles() {
+	document.querySelectorAll('.resize-handle').forEach(e => e.remove());
 }
 
 
@@ -250,6 +411,9 @@ function createPadBackground() {
 			return;
 		}
 
+		if (cancelActiveDrag)
+			cancelActiveDrag();
+
 		select.style.display = 'block';
 
 		let bgRect = backgroundDiv.getBoundingClientRect();
@@ -298,6 +462,7 @@ function getButtonsInRect(left, top, right, bottom, container) {
 
 	let rects = document.querySelectorAll('.rect');
 	rects.forEach(e => e.classList.remove('selected'));
+	removeResizeHandles();
 
 	indexes.forEach((e) => {
 		let elem = document.querySelectorAll('.rect[data-line-index="' + e + '"]');
@@ -326,6 +491,7 @@ function syncSelectedButtons() {
 function deselectAll() {
 	let rects = document.querySelectorAll('.rect');
 	rects.forEach(e => e.classList.remove('selected'));
+	removeResizeHandles();
 	conf.resetGroupSelection();
 }
 

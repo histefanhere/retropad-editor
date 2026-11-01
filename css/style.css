@@ -236,6 +236,41 @@ input[type=number] {
 	box-shadow: 0 0 0 2px rgba(200, 100, 50, 0.25);
 }
 
+.rect.selected {
+	touch-action: none;
+}
+
+#screenpad .rect>.resize-handle {
+	position: absolute;
+	right: auto;
+	bottom: auto;
+	width: 9px;
+	height: 9px;
+	box-sizing: border-box;
+	transform: translate(-50%, -50%);
+	background-color: white;
+	border: 1px solid #d03;
+	border-radius: 2px;
+	pointer-events: auto;
+	touch-action: none;
+	z-index: 1;
+}
+
+@media (pointer: coarse) {
+	#screenpad .rect>.resize-handle {
+		width: 18px;
+		height: 18px;
+	}
+}
+
+.resize-handle--nwse {
+	cursor: nwse-resize;
+}
+
+.resize-handle--nesw {
+	cursor: nesw-resize;
+}
+
 .show-borders .rect:after {
 	content: '';
 	border: 1px solid black;
