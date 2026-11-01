@@ -654,6 +654,49 @@ function ConfigHandler() {
 	}
 
 
+	this.alignSelection = function (mode) {
+		let bounds = this.getSelectionDimensions();
+		if (!bounds)
+			return;
+
+		let axis = ['left', 'hcenter', 'right'].includes(mode) ? 'x' : 'y';
+		let size = axis == 'x' ? 'w' : 'h';
+		let start = bounds[axis] - bounds[size];
+		let end = bounds[axis] + bounds[size];
+
+		selectedButtonLineIndexes.forEach(index => {
+			let half = Number(_getParamSectionValue(_strings[index], size));
+			let value;
+
+			if (mode == 'left' || mode == 'top')
+				value = start + half;
+			else if (mode == 'right' || mode == 'bottom')
+				value = end - half;
+			else
+				value = bounds[axis];
+
+			_strings[index] = _editParamSection(_strings[index], axis, value.toFixed(5));
+		});
+	}
+
+
+	// Equal distance between button centers; first and last stay in place
+	this.distributeSelection = function (axis) {
+		let sorted = selectedButtonLineIndexes.slice().sort((a, b) =>
+			_getParamSectionValue(_strings[a], axis) - _getParamSectionValue(_strings[b], axis));
+
+		if (sorted.length < 3)
+			return;
+
+		let first = Number(_getParamSectionValue(_strings[sorted[0]], axis));
+		let last = Number(_getParamSectionValue(_strings[sorted[sorted.length - 1]], axis));
+		let step = (last - first) / (sorted.length - 1);
+
+		for (let i = 1; i < sorted.length - 1; i++)
+			_strings[sorted[i]] = _editParamSection(_strings[sorted[i]], axis, (first + step * i).toFixed(5));
+	}
+
+
 	this.isGroupSelected = function () {
 		return selectedButtonLineIndexes.length > 0;
 	}

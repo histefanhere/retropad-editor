@@ -84,6 +84,20 @@
 				</div>
 
 				<div class='toolbar-group'>
+					<span class='group-header'>ALIGN</span>
+					<div class='toolbar-group__buttons' id='align-buttons'>
+						<button class='button--normal-size' onclick='alignSelection("left")'>Left</button>
+						<button class='button--normal-size' onclick='alignSelection("hcenter")'>Center</button>
+						<button class='button--normal-size' onclick='alignSelection("right")'>Right</button>
+						<button class='button--normal-size' onclick='alignSelection("top")'>Top</button>
+						<button class='button--normal-size' onclick='alignSelection("vcenter")'>Middle</button>
+						<button class='button--normal-size' onclick='alignSelection("bottom")'>Bottom</button>
+						<button class='button--normal-size' onclick='distributeSelection("x")' title='Space evenly from left to right'>Spread X</button>
+						<button class='button--normal-size' onclick='distributeSelection("y")' title='Space evenly from top to bottom'>Spread Y</button>
+					</div>
+				</div>
+
+				<div class='toolbar-group'>
 					<span class='group-header'>BUTTON</span>
 					<div class='toolbar-group__buttons'>
 						<button onclick='showButtonCreator()'>New button</button>

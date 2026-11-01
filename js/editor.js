@@ -1430,6 +1430,7 @@ function enableEditorSliders(enable) {
 	let inputs = editor.querySelectorAll('input,button');
 	inputs.forEach(e => { e.disabled = !enable })
 	document.getElementById('duplicate-button').disabled = !enable;
+	document.querySelectorAll('#align-buttons button').forEach(e => { e.disabled = !enable || !conf.isGroupSelected() });
 }
 
 
@@ -1708,6 +1709,22 @@ function duplicateSelection() {
 		redrawPad();
 		setEditorControls();
 	}
+}
+
+
+function alignSelection(mode) {
+	conf.alignSelection(mode);
+	syncSelectedButtons();
+	setEditorControls();
+	commitHistory();
+}
+
+
+function distributeSelection(axis) {
+	conf.distributeSelection(axis);
+	syncSelectedButtons();
+	setEditorControls();
+	commitHistory();
 }
 
 
