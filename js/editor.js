@@ -204,8 +204,12 @@ function createPadView() {
 		let r = rects[i];
 		let b = createRect(background, r.command, r.x, r.y, r.w, r.h, r.pct);
 
-		if (images[r.img])
+		if (images[r.img]) {
 			b.style['background-image'] = 'url(' + images[r.img] + ')';
+		} else if (r.img) {
+			b.classList.add('missing-image');
+			b.title = 'Missing image: ' + r.img;
+		}
 
 		if (r.s == 'radial')
 			b.classList.add('radial');
