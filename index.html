@@ -394,6 +394,19 @@
 					<div class='dialog-content-box__section'>
 						<span class='group-header'>Screen dimensions</span>
 						<br class='wide'>
+						<select id='device-preset' aria-label='Device preset' onchange='applyDevicePreset()'>
+							<option value=''>Device preset</option>
+							<option value='1920x1080'>Phone 16:9 (1920 x 1080)</option>
+							<option value='2340x1080'>Phone 19.5:9 (2340 x 1080)</option>
+							<option value='2400x1080'>Phone 20:9 (2400 x 1080)</option>
+							<option value='2560x1440'>Phone QHD (2560 x 1440)</option>
+							<option value='2048x1536'>Tablet 4:3 (2048 x 1536)</option>
+							<option value='2560x1600'>Tablet 16:10 (2560 x 1600)</option>
+							<option value='1280x800'>Steam Deck (1280 x 800)</option>
+							<option value='1280x720'>Nintendo Switch handheld (1280 x 720)</option>
+							<option value='640x480'>Handheld 4:3 (640 x 480)</option>
+						</select>
+						<br class='wide'>
 						<input type='number' id='display-width' step=0.00001 class='js-dialog__focus'>
 						<span>x</span>
 						<input type='number' id='display-height' step=0.00001>

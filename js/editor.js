@@ -2299,6 +2299,7 @@ function hideAspectFixer() {
 function showScreenSizeDialog() {
 	document.getElementById('display-width').value = screen.longSide;
 	document.getElementById('display-height').value = screen.shortSide;
+	document.getElementById('device-preset').value = '';
 
 	document.getElementById('screenshot-width').value = screen.shotFrameWidth;
 	document.getElementById('screenshot-height').value = screen.shotFrameHeight;
@@ -2313,6 +2314,17 @@ function showScreenSizeDialog() {
 	onScreenshotModeChange();
 
 	showDialog('screen-size-dialog', true);
+}
+
+
+function applyDevicePreset() {
+	let select = document.getElementById('device-preset');
+	if (!select.value)
+		return;
+
+	let size = select.value.split('x');
+	document.getElementById('display-width').value = size[0];
+	document.getElementById('display-height').value = size[1];
 }
 
 
