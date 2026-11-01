@@ -83,6 +83,7 @@
 						<button onclick='showOverlayEditor()'>Create • Edit</button>
 						<button onclick='showDialog("overlay-delete-dialog", true)'>Delete overlay</button>
 						<button onclick='showAspectFixer()'>Fix aspect ratio</button>
+						<button onclick='showConfigTextDialog()'>Config text</button>
 					</div>
 				</div>
 
@@ -542,6 +543,22 @@
 				</div>
 				<div class='modal-dialog__footer-box'>
 					<button class='js-dialog__focus' onclick='showDialog("export-hint-dialog", false)'>Close</button>
+				</div>
+			</div>
+		</div>
+
+		<div id='config-text-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
+				<div class='modal-dialog__header-box'>
+					<span>Config text</span>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("config-text-dialog", false)'></button>
+				</div>
+				<div class='modal-dialog__content-box'>
+					<textarea spellcheck='false' id='config-text' class='js-dialog__focus notranslate' translate='no' aria-label='Config text'></textarea>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button class='important' onclick='applyConfigText()'>Apply</button>
+					<button onclick='showDialog("config-text-dialog", false)'>Close</button>
 				</div>
 			</div>
 		</div>

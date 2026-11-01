@@ -20,6 +20,20 @@ function ConfigHandler() {
 	}
 
 
+	// Returns line that can not be used or null when text is valid
+	this.findConfigTextError = function (str) {
+		let lines = str.split('\n').map(line => line.trim());
+
+		if (!lines.some(line => line.search(/^overlays\s*=\s*[1-9]\d*/) == 0))
+			return 'overlays = <count>';
+
+		let button = /^overlay\d+_desc\d+\s*=\s*"[^",]+,[^",]+,[^",]+,(rect|radial),[^",]+,[^",]+"/;
+		let bad = lines.find(line => line.search(/^overlay\d+_desc\d+\s*=/) == 0 && line.search(button) == -1);
+
+		return bad === undefined ? null : bad;
+	}
+
+
 	this.getConfigString = function () {
 		_cleanUp();
 		return _strings.join('\n');

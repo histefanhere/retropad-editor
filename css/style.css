@@ -550,6 +550,14 @@ input[type=number] {
 	height: 9em;
 }
 
+#config-text {
+	box-sizing: border-box;
+	width: min(90vw, 700px);
+	height: 60vh;
+	white-space: pre;
+	font-family: monospace;
+}
+
 #download-help {
 	display: inline-block;
 	color: #777;

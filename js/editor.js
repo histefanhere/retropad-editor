@@ -1410,6 +1410,41 @@ async function exportZip() {
 }
 
 
+function showConfigTextDialog() {
+	document.getElementById('config-text').value = conf.getConfigString();
+	showDialog('config-text-dialog', true);
+}
+
+
+function applyConfigText() {
+	let text = document.getElementById('config-text').value;
+
+	let error = conf.findConfigTextError(text);
+	if (error !== null) {
+		alert('Error in config text:\n' + error);
+		return;
+	}
+
+	let previousConfig = conf.getConfigString();
+	let previousSaved = savedConfigStr;
+	let overlay = conf.getCurrentOverlay();
+
+	try {
+		renderConfig(text, true);
+		savedConfigStr = previousSaved;
+		currentRect = null;
+		buildAndSetOverlaySelectors(overlay);
+		setScreenDimensions();
+		redrawPad();
+		document.getElementById('config-text').value = conf.getConfigString();
+	} catch {
+		alert('Error in config text.\nPrevious config is restored.');
+		renderConfig(previousConfig, true);
+		savedConfigStr = previousSaved;
+	}
+}
+
+
 function downloadBlob(blob, filename) {
 	let a = document.createElement('A');
 	a.href = URL.createObjectURL(blob);
