@@ -367,4 +367,14 @@
 			],
 		},
 	];
+
+	// Image suggested for new buttons
+	window.buttonCommandImages = {
+		up: 'dpad-up.png', down: 'dpad-down.png', left: 'dpad-left.png', right: 'dpad-right.png',
+		a: 'A.png', b: 'B.png', x: 'X.png', y: 'Y.png', select: 'select_psx.png', start: 'start_psx.png',
+		l: 'L.png', l2: 'L2.png', l3: 'L3.png', r: 'R.png', r2: 'R2.png', r3: 'R3_smaller.png',
+		analog_left: 'thumbstick-pad.png', analog_right: 'thumbstick-pad.png',
+		menu_toggle: 'rgui.png', overlay_next: 'rotate.png', pause_toggle: 'pause_square_text.png', reset: 'reset_square_text.png',
+		hold_fast_forward: 'fast_forward.png', toggle_fast_forward: 'fast_forward.png',
+	};
 }

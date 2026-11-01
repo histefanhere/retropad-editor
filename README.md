@@ -5,6 +5,7 @@ https://valent-in.github.io/retropad-editor/
 
 Features:
 - Create, move, resize buttons of virtual gamepad (drag buttons and their corner handles, or use sliders).
+- Edit the selected button directly in the properties panel; every change applies at once.
 - Undo and redo.
 - Works offline and can be installed as an app.
 - View options and themes are remembered.
@@ -15,7 +16,7 @@ Features:
 - Import image resources in addition to 'flat' image set.
 - Drag and drop config and image files onto the page.
 - Export config and its images together as a ZIP archive.
-- Scale viewport for comfortable editing on small screens.
+- Screen zoom fits the window and can be adjusted; panels fold away on small screens.
 - Display sensitivity range for analog sticks.
 - Test mode to try touch areas, and a check for problems before export.
 - Old format support (auto normalize integer overlays).
@@ -28,7 +29,11 @@ On most Android devices RetroArch will open config only from internal memory eve
 Keyboard shortcuts:
 - Arrows: move selection (Shift for larger steps).
 - Delete: delete selected button.
+- Ctrl+A: select all buttons.
 - Ctrl+D: duplicate selection.
+- Ctrl+S: export.
+- +, -, 0: zoom in, zoom out, fit to window.
+- ?: help.
 - Esc: close dialog or clear selection.
 - Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z: undo, redo.
 

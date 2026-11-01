@@ -1,4 +1,4 @@
-const CACHE_NAME = 'retropad-editor-v1';
+const CACHE_NAME = 'retropad-editor-v2';
 
 self.window = self;
 importScripts('js/defaults.js');
@@ -8,8 +8,6 @@ const APP_FILES = [
 	'index.html',
 	'manifest.webmanifest',
 	'aspect-ratio-hint.svg',
-	'css/reset.css',
-	'css/elements.css',
 	'css/style.css',
 	'js/toast.js',
 	'js/defaults.js',
@@ -17,8 +15,8 @@ const APP_FILES = [
 	'js/config-handler.js',
 	'js/session-store.js',
 	'js/zip-writer.js',
+	'js/menus.js',
 	'js/editor.js',
-	'js/file-input-helper.js',
 	'img/retroarch-icon.svg',
 ];
 

@@ -5,8 +5,8 @@
 	"start_url": "./",
 	"scope": "./",
 	"display": "standalone",
-	"background_color": "#d5d5d5",
-	"theme_color": "#0088dd",
+	"background_color": "#121114",
+	"theme_color": "#1c1b1f",
 	"icons": [
 		{
 			"src": "img/retroarch-icon.svg",

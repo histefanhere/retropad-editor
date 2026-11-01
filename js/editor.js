@@ -12,8 +12,8 @@ const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
 const SNAP_THRESHOLD = 0.008;
 const SNAP_GRID_STEP = 0.05;
-const ZOOM_STEP = 0.25;
-const ZOOM_MIN = 0.25;
+const ZOOM_FACTOR = 1.25;
+const ZOOM_MIN = 0.05;
 const ZOOM_MAX = 5;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
@@ -22,6 +22,11 @@ const PREFERENCE_CHECKBOXES = ['chk-show-shapes', 'chk-show-names', 'chk-show-of
 const NUDGE_STEP = 0.001;
 const NUDGE_STEP_LARGE = 0.01;
 const DUPLICATE_OFFSET = 0.02;
+const NEW_BUTTON_HALF_HEIGHT = 0.08;
+const COMPACT_SCREEN_WIDTH = 600;
+const CUSTOM_COMMAND = '__custom';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const THEME_COLORS = { light: '#fbfaf7', dark: '#1c1b1f' };
 
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
@@ -30,7 +35,7 @@ let suppressRectClick = false;
 let selectionBeforeMouseDown = [];
 let selectedBeforePress = null;
 let isSpaceHeld = false;
-let pendingExport = null;
+let isZoomFit = true;
 let isTestMode = false;
 let dialogFocusStack = [];
 let isLoadingPreferences = true;
@@ -52,7 +57,6 @@ let screen = {
 	isSetByUser: false,
 	isPortrait: false,
 
-	scale: 1,
 	zoom: 1,
 
 	get longSide() { return Math.max(this._height, this._width) },
@@ -60,11 +64,11 @@ let screen = {
 
 	set width(value) { this._width = Number(value || screen._width || DEF_WIDTH) },
 	get enteredWidth() { return this.isPortrait ? this.shortSide : this.longSide },
-	get width() { return this.enteredWidth * this.scale * this.zoom },
+	get width() { return this.enteredWidth * this.zoom },
 
 	set height(value) { this._height = Number(value || screen._height || DEF_HEIGHT) },
 	get enteredHeight() { return this.isPortrait ? this.longSide : this.shortSide },
-	get height() { return this.enteredHeight * this.scale * this.zoom },
+	get height() { return this.enteredHeight * this.zoom },
 
 	shotFrameWidth: DEF_SCR_WIDTH,
 	shotFrameHeight: DEF_SCR_HEIGHT,
@@ -86,7 +90,7 @@ let userImages = [];
 
 fillCommandSelector(buttonCommandGroups);
 fillTemplateSelector();
-fillImageSelector();
+fillAddButtonDialog();
 
 let conf = new ConfigHandler();
 let configStr = defaultConfigString; // defaults.js
@@ -120,11 +124,15 @@ document.getElementById('chk-show-portrait').addEventListener('change', toggleOr
 document.getElementById('chk-show-offscreen').addEventListener('change', toggleOffscreen);
 document.getElementById('chk-snap').addEventListener('change', toggleSnap);
 document.getElementById('chk-test-mode').addEventListener('change', toggleTestMode);
-document.getElementById('overlay-selector').addEventListener('change', selectOverlay);
 
 document.getElementById('command-select').addEventListener('change', fillCommandField);
-document.getElementById('image-select').addEventListener('change', fillImageNameField);
+document.getElementById('command-name').addEventListener('change', applyButtonEdit);
 document.getElementById('image-name').addEventListener('input', e => showImagePreview(e.target.value));
+document.getElementById('image-name').addEventListener('change', applyButtonEdit);
+document.querySelectorAll('input[name=button-shape]').forEach(e => e.addEventListener('change', applyButtonEdit));
+document.querySelectorAll('.js-additional-button-property input, .js-additional-button-property select, #raw-button-properties').forEach(e => e.addEventListener('change', applyButtonEdit));
+document.getElementById('overlay-current-name').addEventListener('change', applyOverlayEdit);
+document.getElementById('raw-overlay-current').addEventListener('change', applyOverlayEdit);
 document.getElementById('image-picker-filter').addEventListener('input', fillImagePicker);
 
 document.getElementById('load-config').addEventListener('change', loadConfigFromFile);
@@ -145,6 +153,11 @@ window.addEventListener('dragleave', e => {
 	let padContainer = document.getElementById('gamepad-container');
 	padContainer.addEventListener('wheel', onCanvasWheel, { passive: false });
 	padContainer.addEventListener('pointerdown', onCanvasPanStart, true);
+
+	new ResizeObserver(() => {
+		if (isZoomFit)
+			updateScreenSize();
+	}).observe(padContainer);
 
 	// Panning must not start selection or button drag
 	padContainer.addEventListener('mousedown', e => {
@@ -273,7 +286,18 @@ function createPadView() {
 
 
 function toggleTestMode(event) {
-	isTestMode = event.target.checked;
+	setTestMode(event.target.checked);
+}
+
+
+function setTestMode(isOn) {
+	isTestMode = isOn;
+
+	document.getElementById('chk-test-mode').checked = isOn;
+	document.getElementById('test-banner').classList.toggle('hidden', !isOn);
+	document.body.classList.toggle('is-testing', isOn);
+	document.getElementById('panel-outline').inert = isOn;
+	document.getElementById('inspector').inert = isOn;
 
 	deselectAll();
 	conf.setCurrentLine(-1);
@@ -352,60 +376,77 @@ function buildButtonList(rects) {
 	let list = document.getElementById('button-list');
 	list.innerHTML = '';
 
+	if (rects.length == 0) {
+		let empty = document.createElement('LI');
+		empty.classList.add('row-empty');
+		empty.textContent = 'No buttons yet. Add one to get started.';
+		list.appendChild(empty);
+		return;
+	}
+
 	rects.slice().sort((a, b) => a.number - b.number).forEach(r => {
 		let row = document.createElement('LI');
 		row.dataset.lineIndex = r.i;
 
-		let name = document.createElement('INPUT');
-		name.type = 'text';
-		name.value = r.command;
-		name.setAttribute('aria-label', 'Button command');
-		name.addEventListener('focus', () => selectRectByLine(r.i));
-		name.addEventListener('change', () => renameButton(r.i, name));
-
-		row.appendChild(name);
-		row.appendChild(createListMoveButton('\u2191', 'Move button up', r.i, -1));
-		row.appendChild(createListMoveButton('\u2193', 'Move button down', r.i, 1));
-		row.addEventListener('click', e => {
-			if (e.target == row)
+		let main = document.createElement('BUTTON');
+		main.classList.add('row-main');
+		main.addEventListener('click', e => {
+			if (e.ctrlKey || e.metaKey || e.shiftKey)
+				toggleRectInSelection(r.i, getSelectedLines());
+			else
 				selectRectByLine(r.i);
 		});
+
+		let thumb = document.createElement('SPAN');
+		thumb.classList.add('row-thumb');
+		if (images[r.img])
+			thumb.style['background-image'] = 'url(' + images[r.img] + ')';
+
+		let name = document.createElement('SPAN');
+		name.classList.add('row-main__text', 'row-main__command');
+		name.textContent = r.command;
+
+		main.appendChild(thumb);
+		main.appendChild(name);
+		row.appendChild(main);
+
+		let actions = document.createElement('SPAN');
+		actions.classList.add('row-actions');
+		actions.appendChild(createListMoveButton('i-up', 'Move up in the list', r.i, -1));
+		actions.appendChild(createListMoveButton('i-down', 'Move down in the list', r.i, 1));
+		row.appendChild(actions);
 
 		list.appendChild(row);
 	});
 }
 
 
-function createListMoveButton(text, title, lineIndex, direction) {
+function createListMoveButton(icon, title, lineIndex, direction) {
 	let button = document.createElement('BUTTON');
-	button.textContent = text;
 	button.title = title;
 	button.setAttribute('aria-label', title);
+	button.appendChild(createIcon(icon));
 	button.addEventListener('click', () => moveButtonInList(lineIndex, direction));
 	return button;
 }
 
 
-function selectRectByLine(lineIndex) {
-	let rect = document.querySelector('.rect[data-line-index="' + lineIndex + '"]');
-	if (rect && !rect.classList.contains('selected'))
-		selectRect(rect, lineIndex);
+function createIcon(name) {
+	let svg = document.createElementNS(SVG_NS, 'svg');
+	svg.classList.add('icon', 'icon--small');
+
+	let use = document.createElementNS(SVG_NS, 'use');
+	use.setAttribute('href', '#' + name);
+	svg.appendChild(use);
+
+	return svg;
 }
 
 
-function renameButton(lineIndex, input) {
-	let command = input.value.trim();
-	conf.setCurrentLine(lineIndex);
-
-	if (command == '' || /[\s,"=]/.test(command)) {
-		input.value = conf.getCurrentLineSectionValue('command');
-		showToast('Button command should not be empty or contain spaces, commas, quotes or =');
-		return;
-	}
-
-	conf.setCurrentLineSectionValue('command', command);
-	document.querySelector('.rect[data-line-index="' + lineIndex + '"]').firstChild.textContent = command;
-	commitHistory();
+function selectRectByLine(lineIndex) {
+	let rect = document.querySelector('.rect[data-line-index="' + lineIndex + '"]');
+	if (rect && (conf.isGroupSelected() || !rect.classList.contains('selected')))
+		selectRect(rect, lineIndex);
 }
 
 
@@ -765,17 +806,16 @@ function createPadBackground() {
 			let index = indexes[0];
 			conf.resetGroupSelection();
 			conf.setCurrentLine(index);
-			let elem = document.querySelectorAll('.rect[data-line-index="' + index + '"]')[0];
-
-			setTimeout(() => {
-				elem.dispatchEvent(new Event('click'));
-			}, 0);
+			selectRect(document.querySelector('.rect[data-line-index="' + index + '"]'), index);
 		}
 	}
 
 	backgroundDiv.onmousedown = (event) => {
 		if (event.button != 0)
 			return;
+
+		// Text field in inspector must commit its value before selection is changed
+		document.activeElement.blur();
 
 		let bgRect = backgroundDiv.getBoundingClientRect();
 		let tx = bgRect.left;
@@ -925,7 +965,6 @@ function loadConfigFromFile(e) {
 
 	readConfigFile(file, () => {
 		e.target.value = '';
-		document.getElementById('load-config-filename').textContent = '';
 	});
 }
 
@@ -941,9 +980,9 @@ function readConfigFile(file, onError) {
 			configStr = ev.target.result;
 			importedFilename = file.name;
 			resetExportFilename();
+			showToast('Opened ' + file.name);
 		} catch {
-			let errMsg = 'FILE PARSING ERROR!';
-			showToast(errMsg + '\nPrevious config is restored.');
+			showToast('Could not read this file.\nYour previous config is still here.');
 			renderConfig(previousConfig, true);
 			savedConfigStr = previousSaved;
 
@@ -968,6 +1007,8 @@ function renderConfig(str, keepHistory) {
 
 		if (!keepHistory)
 			resetHistory();
+
+		updateDocStatus();
 	},
 		images);
 }
@@ -1031,8 +1072,8 @@ function readImageFiles(files) {
 
 			// onload is async function so loop ends BEFORE it's first launch
 			if (++loadCounter == imgCounter) {
-				redrawPad();
-				fillImageSelector();
+				redrawKeepingSelection();
+				fillImagePicker();
 				scheduleAutosave();
 			}
 		};
@@ -1088,13 +1129,16 @@ function refreshScreenshot() {
 
 function createRect(target, name, x, y, w, h, pct) {
 	let rect = document.createElement('DIV');
-	let text = document.createTextNode(name);
-	rect.appendChild(text);
+	let label = document.createElement('SPAN');
+	label.classList.add('rect__label');
+	label.textContent = name;
+	rect.appendChild(label);
 	rect.classList.add('rect');
 
 	if (pct) {
 		// visualize thumbstick saturate_pct property
 		let inner = document.createElement('DIV');
+		inner.classList.add('stick-range');
 		let perc = Math.round(pct * 70);
 		inner.style['background-image'] = 'radial-gradient(transparent, rgba(100,100,200,0.4) ' + perc + '%, transparent ' + (perc + 1) + '%)';
 		rect.appendChild(inner);
@@ -1221,7 +1265,6 @@ function flushAutosave() {
 			_width: screen._width,
 			_height: screen._height,
 			isSetByUser: screen.isSetByUser,
-			scale: screen.scale,
 		},
 	}).catch(console.error);
 }
@@ -1252,7 +1295,6 @@ function restoreSession() {
 	try {
 		Object.assign(images, session.images);
 		userImages = Object.keys(session.images);
-		fillImageSelector();
 
 		Object.assign(screen, session.screen);
 		configStr = session.baseConfig;
@@ -1264,6 +1306,7 @@ function restoreSession() {
 		buildAndSetOverlaySelectors(session.overlay);
 		setScreenDimensions();
 		redrawPad();
+		resetExportFilename();
 		scheduleAutosave();
 	} catch (err) {
 		console.error(err);
@@ -1289,6 +1332,24 @@ function discardSession() {
 function updateHistoryButtons() {
 	document.getElementById('undo-button').disabled = undoStack.length == 0;
 	document.getElementById('redo-button').disabled = redoStack.length == 0;
+	updateDocStatus();
+}
+
+
+function updateDocStatus() {
+	let status = document.getElementById('doc-status');
+	let isUnsaved = conf.getConfigString() != savedConfigStr;
+
+	document.getElementById('doc-name').textContent = importedFilename;
+	status.textContent = isUnsaved ? 'Not exported' : '';
+	status.classList.toggle('is-unsaved', isUnsaved);
+}
+
+
+function redrawKeepingSelection() {
+	let lines = getSelectedLines();
+	redrawPad();
+	applySelection(lines);
 }
 
 
@@ -1309,11 +1370,19 @@ function updateScreenSize() {
 	let s = document.getElementById('screenpad');
 	let d = document.getElementById('game-screenshot');
 
+	if (isZoomFit)
+		screen.zoom = getFitZoom();
+
+	document.getElementById('zoom-value').textContent = Math.round(screen.zoom * 100) + '%';
+	document.getElementById('status-size').textContent = screen.enteredWidth + ' \u00d7 ' + screen.enteredHeight;
+	document.getElementById('orientation-label').textContent = screen.isPortrait ? 'Portrait' : 'Landscape';
+
 	s.style.width = screen.width + 'px';
 	s.style.height = screen.height + 'px';
+	s.classList.toggle('is-compact', screen.width < COMPACT_SCREEN_WIDTH);
 
-	let shotWidth = screen.shotFrameWidth * screen.scale * screen.zoom;
-	let shotHeight = screen.shotFrameHeight * screen.scale * screen.zoom;
+	let shotWidth = screen.shotFrameWidth * screen.zoom;
+	let shotHeight = screen.shotFrameHeight * screen.zoom;
 
 	d.style.width = shotWidth + 'px';
 	d.style.height = shotHeight + 'px';
@@ -1328,15 +1397,32 @@ function updateScreenSize() {
 
 
 function setZoom(value) {
+	isZoomFit = false;
 	screen.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
-	document.getElementById('zoom-value').textContent = Math.round(screen.zoom * 100) + '%';
 	updateScreenSize();
 	savePreferences();
 }
 
 
+function fitZoom() {
+	isZoomFit = true;
+	updateScreenSize();
+	savePreferences();
+}
+
+
+function getFitZoom() {
+	let container = document.getElementById('gamepad-container');
+	let padding = parseFloat(getComputedStyle(document.getElementById('gamepad-container__scroll-frame')).paddingLeft) * 2;
+	let width = (container.clientWidth - padding - 1) / screen.enteredWidth;
+	let height = (container.clientHeight - padding - 1) / screen.enteredHeight;
+
+	return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(width, height))) || 1;
+}
+
+
 function changeZoom(direction) {
-	setZoom(screen.zoom + direction * ZOOM_STEP);
+	setZoom(direction > 0 ? screen.zoom * ZOOM_FACTOR : screen.zoom / ZOOM_FACTOR);
 }
 
 
@@ -1456,13 +1542,6 @@ function applyScreenDimensions() {
 	screen.isSetByUser = true;
 	screen.shotMode = fit ? 'fit' : match ? 'match' : setSize ? 'set' : 'fit';
 
-	hideScreenSizeDialog();
-
-	if (document.getElementById('chk-rescale-to-fit').checked)
-		screen.scale = calculateScreenSizeToFit(w, h);
-	else
-		screen.scale = 1;
-
 	setScreenDimensions(w, h, sw, sh);
 
 	redrawPad();
@@ -1473,10 +1552,13 @@ function applyScreenDimensions() {
 function exportConfig() {
 	let configText = conf.getConfigString();
 	let file = new Blob([configText], { type: 'text/plain' });
-	downloadBlob(file, getExportFilename());
+	let name = getExportFilename();
+	downloadBlob(file, name);
 
 	savedConfigStr = configText;
+	updateDocStatus();
 	scheduleAutosave();
+	showToast('Saved ' + name);
 }
 
 
@@ -1498,13 +1580,17 @@ async function exportZip() {
 		}
 	}
 
-	downloadBlob(createZipBlob(files), configName.replace(/\.cfg$/i, '') + '.zip');
+	let zipName = configName.replace(/\.cfg$/i, '') + '.zip';
+	downloadBlob(createZipBlob(files), zipName);
 
 	savedConfigStr = configText;
+	updateDocStatus();
 	scheduleAutosave();
 
 	if (missing.length > 0)
-		showToast('Images not added to archive:\n' + missing.join('\n'));
+		showToast('Saved ' + zipName + ', without these images:\n' + missing.join('\n'));
+	else
+		showToast('Saved ' + zipName);
 }
 
 
@@ -1534,9 +1620,10 @@ function applyConfigText() {
 		buildAndSetOverlaySelectors(overlay);
 		setScreenDimensions();
 		redrawPad();
-		document.getElementById('config-text').value = conf.getConfigString();
+		updateDocStatus();
+		showDialog('config-text-dialog', false);
 	} catch {
-		showToast('Error in config text.\nPrevious config is restored.');
+		showToast('Error in config text.\nYour previous config is still here.');
 		renderConfig(previousConfig, true);
 		savedConfigStr = previousSaved;
 	}
@@ -1544,21 +1631,52 @@ function applyConfigText() {
 
 
 function fillTemplateSelector() {
-	let select = document.getElementById('template-select');
+	let grid = document.getElementById('template-grid');
 
-	padTemplates.forEach(template => {
-		let o = document.createElement('OPTION');
-		o.value = template.id;
-		o.appendChild(document.createTextNode(template.name));
-		select.appendChild(o);
+	padTemplates.concat({ id: 'retropad', name: 'Full RetroPad', config: defaultConfigString }).forEach(template => {
+		let tile = document.createElement('BUTTON');
+		tile.classList.add('template-tile');
+		tile.appendChild(createTemplatePreview(template.config));
+		tile.appendChild(document.createTextNode(template.name));
+		tile.addEventListener('click', () => loadTemplate(template));
+		grid.appendChild(tile);
 	});
 }
 
 
-function loadTemplate() {
-	let id = document.getElementById('template-select').value;
-	let template = padTemplates.find(t => t.id == id);
+// Draws buttons of first overlay
+function createTemplatePreview(config) {
+	let preview = document.createElement('SPAN');
+	preview.classList.add('template-preview');
 
+	let lines = config.split('\n');
+
+	lines.forEach(line => {
+		let match = line.match(/^overlay0_desc(\d+) = "[^,]+,([\d.]+),([\d.]+),\w+,([\d.]+),([\d.]+)"/);
+		if (!match)
+			return;
+
+		let imageLine = lines.find(l => l.startsWith('overlay0_desc' + match[1] + '_overlay = '));
+		if (!imageLine)
+			return;
+
+		let [x, y, w, h] = match.slice(2).map(Number);
+		let image = document.createElement('IMG');
+		image.src = images[imageLine.split('= ')[1].replace(/"/g, '')];
+		image.alt = '';
+		image.loading = 'lazy';
+		image.style.left = (x - w) * 100 + '%';
+		image.style.top = (y - h) * 100 + '%';
+		image.style.width = w * 200 + '%';
+		image.style.height = h * 200 + '%';
+		preview.appendChild(image);
+	});
+
+	return preview;
+}
+
+
+function loadTemplate(template) {
 	showDialog('template-dialog', false);
 
 	currentRect = null;
@@ -1566,54 +1684,49 @@ function loadTemplate() {
 	configStr = template.config;
 	importedFilename = template.id + '.cfg';
 	resetExportFilename();
+	showToast('Started from ' + template.name, 'Undo', undo);
 }
 
 
-function requestExport(exportFunction) {
-	let problems = conf.getConfigProblems(images);
+function showExportDialog() {
+	if (!document.getElementById('export-filename').value)
+		resetExportFilename();
 
-	if (problems.length == 0) {
-		exportFunction();
-		return;
-	}
-
-	pendingExport = exportFunction;
-	fillCheckDialog(problems, []);
-	document.getElementById('check-export-anyway').classList.remove('hidden');
-	showDialog('check-dialog', true);
+	fillCheckResults(conf.getConfigProblems(images), conf.getHitAreaOverlaps());
+	showDialog('export-dialog', true);
 }
 
 
-function exportAnyway() {
-	showDialog('check-dialog', false);
-	pendingExport();
+function hideExportDialog() {
+	showDialog('export-dialog', false);
 }
 
 
-function showConfigCheck() {
-	fillCheckDialog(conf.getConfigProblems(images), conf.getHitAreaOverlaps());
-	document.getElementById('check-export-anyway').classList.add('hidden');
-	showDialog('check-dialog', true);
-}
+function fillCheckResults(problems, notes) {
+	let summary = document.getElementById('check-summary');
+	summary.classList.toggle('has-problems', problems.length > 0);
 
+	if (problems.length == 0)
+		summary.textContent = 'Ready for RetroArch';
+	else
+		summary.textContent = problems.length + (problems.length == 1 ? ' problem' : ' problems') + ' to look at. You can still export.';
 
-function fillCheckDialog(problems, notes) {
-	let list = document.getElementById('check-list');
-	list.innerHTML = '';
+	let fillList = (id, rows) => {
+		let list = document.getElementById(id);
+		list.innerHTML = '';
 
-	let addRow = (text, className) => {
-		let row = document.createElement('LI');
-		row.textContent = text;
-		if (className)
-			row.classList.add(className);
-		list.appendChild(row);
+		rows.forEach(text => {
+			let row = document.createElement('LI');
+			row.textContent = text;
+			list.appendChild(row);
+		});
 	};
 
-	problems.forEach(text => addRow(text, 'is-problem'));
-	notes.forEach(text => addRow(text));
+	fillList('check-list', problems);
+	fillList('check-notes', notes);
 
-	if (problems.length + notes.length == 0)
-		addRow('No problems found.');
+	document.getElementById('check-notes-box').classList.toggle('hidden', notes.length == 0);
+	document.getElementById('check-notes-summary').textContent = notes.length + (notes.length == 1 ? ' touch area overlaps' : ' touch areas overlap') + ' (usually fine)';
 }
 
 
@@ -1633,6 +1746,7 @@ function getDefaultExportFilename() {
 
 function resetExportFilename() {
 	document.getElementById('export-filename').value = getDefaultExportFilename();
+	updateDocStatus();
 }
 
 
@@ -1670,78 +1784,166 @@ function updateCurrentLine(section, value) {
 function buildAndSetOverlaySelectors(selectIndex) {
 	let list = conf.getOverlayList();
 
-	let select = document.getElementById('overlay-selector');
-	select.innerHTML = '';
-
-	for (let i = 0; i < list.length; i++) {
-		let name = (i + 1) + ' - ' + (list[i] ? list[i] : '[unnamed]');
-		let o = document.createElement('OPTION');
-		o.appendChild(document.createTextNode(name));
-		select.appendChild(o);
-	}
-
 	selectIndex = Math.min(selectIndex, list.length - 1);
-	select.selectedIndex = selectIndex;
 	conf.setCurrentOverlay(selectIndex);
 	screen.isPortrait = list[selectIndex].search('portrait') != -1;
 
 	document.getElementById('chk-show-portrait').checked = screen.isPortrait;
 
+	updateOverlayList();
+
 	let selectNext = document.getElementById('next_target_property');
 	selectNext.innerHTML = '';
 
-	selectNext.appendChild(document.createElement('OPTION'));
+	let none = document.createElement('OPTION');
+	none.value = '';
+	none.textContent = 'None';
+	selectNext.appendChild(none);
 
 	for (let i = 0; i < list.length; i++) {
 		if (list[i]) {
 			let o = document.createElement('OPTION');
-			o.appendChild(document.createTextNode(list[i]));
+			o.value = list[i];
+			o.textContent = list[i].replace(/"/g, '');
 			selectNext.appendChild(o);
 		}
 	}
 }
 
 
-function fillButtonEditor(command, shape, image, addLines) {
-	document.getElementById('command-name').value = command;
-	document.getElementById('button-shape').selectedIndex = shape == 'rect' ? 0 : 1;
+function updateOverlayList() {
+	let container = document.getElementById('overlay-list');
+	let current = conf.getCurrentOverlay();
+	container.innerHTML = '';
 
-	if (image)
-		document.getElementById('image-name').value = image;
-	else
-		document.getElementById('image-name').value = '';
+	conf.getOverlayList().forEach((item, index) => {
+		let name = item.replace(/"/g, '') || 'Unnamed';
 
-	showImagePreview(image);
+		let row = document.createElement('LI');
+		row.classList.toggle('selected', index == current);
 
-	setImageSelectorOption(image);
-	setCommandSelectorOption(command);
+		let main = document.createElement('BUTTON');
+		main.classList.add('row-main');
+		main.addEventListener('click', () => switchOverlay(index));
+		if (index == current)
+			main.setAttribute('aria-current', 'true');
 
-	fillAdditionalPropsFields(addLines.split('\n'));
+		let shape = document.createElement('SPAN');
+		shape.classList.add('row-orientation');
+		shape.classList.toggle('row-orientation--portrait', item.search('portrait') != -1);
+
+		let text = document.createElement('SPAN');
+		text.classList.add('row-main__text');
+		text.textContent = name;
+
+		main.appendChild(shape);
+		main.appendChild(text);
+		row.appendChild(main);
+		container.appendChild(row);
+	});
 }
 
 
-function fillImageSelector() {
-	let selector = document.getElementById('image-select');
-	selector.innerHTML = '';
+function fillButtonEditor(command, shape, image, addLines) {
+	document.getElementById('command-name').value = command;
+	document.getElementById(shape == 'rect' ? 'shape-rect' : 'shape-radial').checked = true;
+	document.getElementById('image-name').value = image || '';
 
-	userImages.sort();
+	showImagePreview(image);
+	setCommandSelectorOption(command);
+	fillAdditionalPropsFields(addLines.split('\n'));
+	updateAdditionalPropsVisibility(command);
+}
 
-	let listAll = [];
-	if (userImages.length > 0)
-		listAll = listAll.concat(userImages);
 
-	let defImages = [''];
-	for (let f in images)
-		if (!userImages.includes(f))
-			defImages.push(f);
+function updateInspector(isEnabled) {
+	let mode = !isEnabled ? 'overlay' : conf.isGroupSelected() ? 'multi' : 'single';
+	document.getElementById('inspector').dataset.mode = mode;
 
-	listAll = listAll.concat(defImages);
+	let title = document.getElementById('selection-title');
 
-	for (let name of listAll) {
-		let o = document.createElement('OPTION');
-		o.appendChild(document.createTextNode(name));
-		selector.appendChild(o);
+	if (mode == 'overlay') {
+		fillOverlayFields();
+	} else if (mode == 'multi') {
+		let count = conf.getSelectedIndexes().length;
+		title.textContent = count + (count == 1 ? ' button selected' : ' buttons selected');
+	} else {
+		let values = conf.getCurrentButtonParams();
+		title.textContent = 'Button';
+		fillButtonEditor(values.command, values.shape, values.image, values.addLines.join('\n'));
 	}
+}
+
+
+function fillOverlayFields() {
+	let current = conf.getCurrentOverlay();
+	let count = conf.getOverlayList().length;
+
+	document.getElementById('overlay-current-name').value = conf.getCurrentOverlayName();
+	document.getElementById('raw-overlay-current').value = conf.getCurrentOverlayParams().join('\n');
+	document.getElementById('overlay-move-up').disabled = current == 0;
+	document.getElementById('overlay-move-down').disabled = current == count - 1;
+	document.getElementById('overlay-delete').disabled = count <= 1;
+
+	document.getElementById('display-width').value = screen.longSide;
+	document.getElementById('display-height').value = screen.shortSide;
+
+	let preset = document.getElementById('device-preset');
+	preset.value = screen.longSide + 'x' + screen.shortSide;
+	if (preset.selectedIndex == -1)
+		preset.value = '';
+
+	document.getElementById('screenshot-width').value = +Number(screen.shotFrameWidth).toFixed(2);
+	document.getElementById('screenshot-height').value = +Number(screen.shotFrameHeight).toFixed(2);
+	document.getElementById('radio-screenshot-' + screen.shotMode).checked = true;
+	document.getElementById('radio-screenshot-match').disabled = !screen.shotImage || !screen.shotShow;
+
+	onScreenshotModeChange();
+}
+
+
+function applyButtonEdit() {
+	let d = getButtonDataFromDialog();
+
+	if (d.warn) {
+		updateInspector(true);
+		return;
+	}
+
+	conf.updateCurrentButton(d.command, d.shape, d.image, d.lines);
+	redrawKeepingSelection();
+}
+
+
+function getOverlayNameError(name) {
+	if (name == '')
+		return 'Enter a name for the overlay.';
+
+	if (/["=]/.test(name))
+		return 'Overlay names can not contain " or =.';
+
+	if (conf.getCurrentOverlayName() != name && conf.isOverlayNameExist(name))
+		return 'Another overlay already has this name.';
+
+	return null;
+}
+
+
+function applyOverlayEdit() {
+	let name = document.getElementById('overlay-current-name').value.trim();
+	let error = getOverlayNameError(name);
+
+	if (error) {
+		showToast(error);
+		fillOverlayFields();
+		return;
+	}
+
+	conf.editCurrentOverlay(name, processRawProperties(document.getElementById('raw-overlay-current').value));
+
+	buildAndSetOverlaySelectors(conf.getCurrentOverlay());
+	setScreenDimensions();
+	redrawPad();
 }
 
 
@@ -1759,10 +1961,26 @@ function fillImagePicker() {
 
 	let names = userImages.concat(Object.keys(images).filter(name => !userImages.includes(name)));
 
+	if (filter == '') {
+		let none = document.createElement('BUTTON');
+		none.classList.add('tile');
+
+		let mark = document.createElement('SPAN');
+		mark.classList.add('tile__thumb', 'tile__thumb--empty');
+		mark.textContent = 'none';
+
+		none.appendChild(mark);
+		none.appendChild(document.createTextNode('No image'));
+		none.addEventListener('click', () => chooseImage(''));
+		grid.appendChild(none);
+	}
+
 	names.filter(name => name.toLowerCase().includes(filter)).forEach(name => {
 		let button = document.createElement('BUTTON');
+		button.classList.add('tile');
 
 		let thumbnail = document.createElement('IMG');
+		thumbnail.classList.add('tile__thumb');
 		thumbnail.src = images[name];
 		thumbnail.alt = '';
 		thumbnail.loading = 'lazy';
@@ -1777,28 +1995,14 @@ function fillImagePicker() {
 
 function chooseImage(name) {
 	document.getElementById('image-name').value = name;
-	setImageSelectorOption(name);
 	showImagePreview(name);
 	showDialog('image-picker-dialog', false);
-}
-
-
-function setImageSelectorOption(value) {
-	let s = document.getElementById('image-select');
-	s.value = '';
-
-	for (let i = 0; i < s.options.length; i++) {
-		if (s.options[i].text == value) {
-			s.selectedIndex = i;
-			break;
-		}
-	}
+	applyButtonEdit();
 }
 
 
 function fillCommandSelector(groups) {
 	let s = document.getElementById('command-select');
-	s.appendChild(document.createElement('OPTION'));
 
 	groups.forEach((group) => {
 		let g = document.createElement('OPTGROUP');
@@ -1813,19 +2017,73 @@ function fillCommandSelector(groups) {
 
 		s.appendChild(g);
 	});
+
+	let custom = document.createElement('OPTION');
+	custom.value = CUSTOM_COMMAND;
+	custom.textContent = 'Custom command\u2026';
+	s.appendChild(custom);
+}
+
+
+function fillAddButtonDialog() {
+	let container = document.getElementById('add-button-groups');
+
+	buttonCommandGroups.forEach(group => {
+		let heading = document.createElement('DIV');
+		heading.classList.add('tile-grid-heading');
+		heading.textContent = group.label;
+		container.appendChild(heading);
+
+		let grid = document.createElement('DIV');
+		grid.classList.add('tile-grid');
+
+		group.commands.forEach(([command, name]) => {
+			grid.appendChild(createAddButtonTile(name, buttonCommandImages[command], () => addButton(command)));
+		});
+
+		container.appendChild(grid);
+	});
+
+	let custom = document.createElement('DIV');
+	custom.classList.add('tile-grid');
+	custom.appendChild(createAddButtonTile('Custom command', null, () => addButton('custom', true)));
+
+	let heading = document.createElement('DIV');
+	heading.classList.add('tile-grid-heading');
+	heading.textContent = 'Other';
+	container.appendChild(heading);
+	container.appendChild(custom);
+}
+
+
+function createAddButtonTile(name, image, onClick) {
+	let tile = document.createElement('BUTTON');
+	tile.classList.add('tile');
+
+	if (image) {
+		let thumb = document.createElement('IMG');
+		thumb.classList.add('tile__thumb');
+		thumb.src = images[image];
+		thumb.alt = '';
+		thumb.loading = 'lazy';
+		tile.appendChild(thumb);
+	}
+
+	tile.appendChild(document.createTextNode(name));
+	tile.addEventListener('click', onClick);
+	return tile;
 }
 
 
 function setCommandSelectorOption(value) {
 	let s = document.getElementById('command-select');
-	s.selectedIndex = 0;
+	s.value = value;
 
-	for (let i = 0; i < s.options.length; i++) {
-		if (s.options[i].value == value) {
-			s.selectedIndex = i;
-			break;
-		}
-	}
+	let isCustom = s.selectedIndex == -1;
+	if (isCustom)
+		s.value = CUSTOM_COMMAND;
+
+	document.getElementById('command-name').classList.toggle('hidden', !isCustom);
 }
 
 
@@ -1857,7 +2115,6 @@ function showAdditionalParametersForCommand(command) {
 
 function enableEditor(enable) {
 	enableEditorSliders(enable)
-	document.getElementById('show-button-editor').disabled = !enable;
 }
 
 
@@ -1869,7 +2126,7 @@ function enableEditorSliders(enable) {
 	document.getElementById('duplicate-button').disabled = !enable;
 	document.getElementById('mirror-button').disabled = !enable;
 	document.getElementById('del-current-button').disabled = !enable;
-	document.querySelectorAll('#align-buttons button').forEach(e => { e.disabled = !enable || !conf.isGroupSelected() });
+	updateInspector(enable);
 }
 
 
@@ -1887,6 +2144,10 @@ function fillAdditionalPropsFields(data) {
 		let prop = earr[0].trim();
 		let val = earr[1] ? earr[1].trim() : '';
 		let fields = [];
+
+		// Overlay names in target list are quoted
+		if (prop == 'next_target' && val && !val.startsWith('"'))
+			val = '"' + val + '"';
 
 		try {
 			fields = document.querySelectorAll('.js-additional-button-property #' + prop + '_property');
@@ -1909,6 +2170,15 @@ function fillAdditionalPropsFields(data) {
 	});
 
 	others.value = othData.trim();
+}
+
+
+// Properties that do not apply to command are shown only when they have a value
+function updateAdditionalPropsVisibility(command) {
+	document.querySelectorAll('.js-additional-button-property[data-commands]').forEach(row => {
+		let hasValue = Array.from(row.querySelectorAll('input, select')).some(e => e.value != '');
+		row.classList.toggle('hidden', !hasValue && !row.dataset.commands.split(' ').includes(command));
+	});
 }
 
 
@@ -1960,20 +2230,6 @@ function processRawProperties(str) {
 	});
 
 	return ret;
-}
-
-
-function resetButtonDialog() {
-	document.getElementById('command-select').value = 'a';
-	document.getElementById('image-select').value = 'A.png';
-
-	document.getElementById('command-name').value = 'a';
-	document.getElementById('image-name').value = 'A.png';
-	showImagePreview('A.png');
-
-	document.getElementById('button-shape').value = 'radial';
-
-	clearAdditionalPropsFields();
 }
 
 
@@ -2050,13 +2306,7 @@ function trapDialogFocus(event) {
 
 function showImagePreview(imgName) {
 	let image = images[imgName];
-	let gradient = 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 80%, #aac 90%)';
-	let box = document.getElementById('image-name');
-
-	if (image)
-		box.style['background-image'] = 'url(' + image + '), ' + gradient;
-	else
-		box.style['background-image'] = 'none';
+	document.getElementById('image-picker-button').style['background-image'] = image ? 'url(' + image + ')' : 'none';
 }
 
 
@@ -2069,27 +2319,6 @@ function generateOverlayName(isPortrait) {
 	}
 
 	document.getElementById('overlay-name').value = prefix + '-' + index;
-}
-
-
-function calculateScreenSizeToFit(width, height) {
-	let vw = window.innerWidth;
-	let _width = Math.max(width, height);
-	let _height = Math.min(width, height);
-	let scale;
-
-	if (vw < 600) {
-		let coef = 0.85;
-		let theight = vw * coef;
-		scale = theight / _height;
-	} else {
-		let coef = vw <= 1280 ? 0.7 : 0.55;
-		let twidth = vw * coef;
-		scale = twidth / _width;
-	}
-
-
-	return scale;
 }
 
 
@@ -2110,11 +2339,20 @@ function closeTopDialogOnEscape(event) {
 
 
 function handleShortcuts(event) {
-	if (isTestMode || document.querySelector('.dialog-container:not(.hidden)'))
+	if (document.querySelector('.dialog-container:not(.hidden)'))
 		return;
 
-	if (event.target.matches('input, textarea, select'))
+	if (isTestMode) {
+		if (event.key == 'Escape')
+			setTestMode(false);
 		return;
+	}
+
+	if (event.target.matches('input, textarea, select')) {
+		if (event.key == 'Escape')
+			event.target.blur();
+		return;
+	}
 
 	let key = event.key.toLowerCase();
 	let isCtrl = event.ctrlKey || event.metaKey;
@@ -2126,11 +2364,35 @@ function handleShortcuts(event) {
 			redo();
 		else if (key == 'd')
 			duplicateSelection();
+		else if (key == 'a')
+			applySelection(conf.buildPadFromConfig().map(b => b.i));
+		else if (key == 's')
+			showExportDialog();
 		else
 			return;
 
 		event.preventDefault();
 		return;
+	}
+
+	if (!event.altKey) {
+		let handled = true;
+
+		if (key == '+' || key == '=')
+			changeZoom(1);
+		else if (key == '-')
+			changeZoom(-1);
+		else if (key == '0')
+			fitZoom();
+		else if (key == '?')
+			showDialog('help-dialog', true);
+		else
+			handled = false;
+
+		if (handled) {
+			event.preventDefault();
+			return;
+		}
 	}
 
 	// Editor is enabled only when buttons are selected
@@ -2160,7 +2422,7 @@ function handleShortcuts(event) {
 		case 'delete':
 		case 'backspace':
 			if (!document.getElementById('del-current-button').disabled)
-				showDialog('button-delete-dialog', true);
+				delCurrentButton();
 			break;
 
 		case 'escape':
@@ -2242,8 +2504,24 @@ function warnAboutUnsavedChanges(event) {
 // Inline event listeners
 
 function resetPad() {
-	showDialog('reset-dialog', false);
-	renderConfig(configStr);
+	let before = conf.getConfigString();
+
+	currentRect = null;
+	renderConfig(configStr, true);
+
+	if (conf.getConfigString() == before)
+		showToast('Nothing to revert.');
+	else
+		showToast('Reverted to the opened version', 'Undo', undo);
+}
+
+
+function pickFile(inputId) {
+	let input = document.getElementById(inputId);
+
+	// allow importing same file again (change event is not fired otherwise)
+	input.value = '';
+	input.click();
 }
 
 
@@ -2334,14 +2612,14 @@ function fixAspect() {
 function getButtonDataFromDialog() {
 	let d = {};
 
-	d.command = document.getElementById('command-name').value.trim() || 'null';
-	if (d.command.search(/\s/) != -1) {
+	d.command = document.getElementById('command-name').value.trim();
+	if (d.command == '' || /[\s,"=]/.test(d.command)) {
 		d.warn = true;
-		showToast('Button command should not contain spaces');
+		showToast('A command can not be empty or contain spaces, commas, quotes or =.');
 	}
 
-	d.shape = ['rect', 'radial'][document.getElementById('button-shape').selectedIndex];
-	d.image = document.getElementById('image-name').value;
+	d.shape = document.getElementById('shape-rect').checked ? 'rect' : 'radial';
+	d.image = document.getElementById('image-name').value.trim();
 
 	d.lines = readAdditionalPropsFields();
 
@@ -2349,48 +2627,48 @@ function getButtonDataFromDialog() {
 }
 
 
-function addButton() {
-	let d = getButtonDataFromDialog();
-	if (d.warn)
-		return;
+function addButton(command, isCustom) {
+	showDialog('add-button-dialog', false);
 
-	hideButtonEditor();
-	conf.createButton(d.command, d.shape, d.image, d.lines);
+	let lines = showAdditionalParametersForCommand(command);
+	let shape = /_area$/.test(command) ? 'rect' : 'radial';
+
+	conf.createButton(command, shape, buttonCommandImages[command] || '', lines ? lines.split('\n') : []);
+
+	// New button starts as a visual square
+	conf.setCurrentLineSectionValue('h', NEW_BUTTON_HALF_HEIGHT);
+	conf.setCurrentLineSectionValue('w', +(NEW_BUTTON_HALF_HEIGHT * screen.enteredHeight / screen.enteredWidth).toFixed(5));
+
+	let line = conf.getCurrentLine();
+	currentRect = null;
 	redrawPad();
-}
+	applySelection([line]);
 
-
-function editButton() {
-	let d = getButtonDataFromDialog();
-	if (d.warn)
-		return;
-
-	hideButtonEditor();
-	conf.updateCurrentButton(d.command, d.shape, d.image, d.lines);
-	conf.setCurrentLine(-1);
-	redrawPad();
+	if (isCustom) {
+		let field = document.getElementById('command-name');
+		field.classList.remove('hidden');
+		document.getElementById('command-select').value = CUSTOM_COMMAND;
+		field.focus();
+		field.select();
+	}
 }
 
 
 function addOverlay() {
 	let name = document.getElementById('overlay-name').value.trim();
 	let raw = document.getElementById('raw-overlay-properties').value;
+	let errorBox = document.getElementById('overlay-name-error');
+	let error = conf.isOverlayNameExist(name) ? 'Another overlay already has this name.' : getOverlayNameError(name);
+
+	errorBox.textContent = error || '';
+	errorBox.classList.toggle('hidden', !error);
+
+	if (error) {
+		document.getElementById('overlay-name').focus();
+		return;
+	}
+
 	let props = processRawProperties(raw);
-
-	if (conf.isOverlayNameExist(name)) {
-		showDialog('name-exist-dialog', true);
-		return;
-	}
-
-	if (name == '') {
-		showDialog('name-empty-dialog', true);
-		return;
-	}
-
-	if (/["=]/.test(name)) {
-		showDialog('name-invalid-dialog', true);
-		return;
-	}
 
 	if (document.getElementById('chk-duplicate-overlay').checked)
 		conf.duplicateCurrentOverlay(name, props);
@@ -2398,50 +2676,27 @@ function addOverlay() {
 		conf.createOverlay(name, props);
 
 	hideOverlayEditor();
+	currentRect = null;
+	conf.setCurrentLine(-1);
 	buildAndSetOverlaySelectors(1000);
 	setScreenDimensions();
 	redrawPad();
 }
 
 
-function editOverlay() {
-	let name = document.getElementById('overlay-name').value.trim();
-	let raw = document.getElementById('raw-overlay-properties').value;
-
-	if (conf.getCurrentOverlayName() != name && conf.isOverlayNameExist(name)) {
-		showDialog('name-exist-dialog', true);
-		return;
-	}
-
-	if (name == '') {
-		showDialog('name-empty-dialog', true);
-		return;
-	}
-
-	if (/["=]/.test(name)) {
-		showDialog('name-invalid-dialog', true);
-		return;
-	}
-
-	conf.editCurrentOverlay(name, processRawProperties(raw));
-
-	hideOverlayEditor();
-	buildAndSetOverlaySelectors(conf.getCurrentOverlay());
-	setScreenDimensions();
-	redrawPad();
-}
-
-
 function delCurrentButton() {
-	showDialog('button-delete-dialog', false);
+	let before = conf.getConfigString();
 
 	if (conf.isGroupSelected())
 		conf.deleteSelectedButtons();
-	else if (!conf.deleteCurrentButton())
-		showToast('No selection!');
+	else
+		conf.deleteCurrentButton();
 
 	currentRect = null;
 	redrawPad();
+
+	if (conf.getConfigString() != before)
+		showToast('Deleted', 'Undo', undo);
 }
 
 
@@ -2457,40 +2712,29 @@ function moveOverlay(direction) {
 
 
 function delCurrentOverlay() {
-	showDialog('overlay-delete-dialog', false);
+	let before = conf.getConfigString();
 
 	conf.deleteCurrentOverlay();
+	currentRect = null;
 	buildAndSetOverlaySelectors(0);
 	setScreenDimensions();
 	redrawPad();
-}
 
-
-function showButtonEditor() {
-	let values = conf.getCurrentButtonParams();
-
-	fillButtonEditor(values.command, values.shape, values.image, values.addLines.join('\n'));
-
-	document.getElementById('button-create-button').classList.add('hidden');
-	document.getElementById('button-edit-button').classList.remove('hidden');
-	showDialog('button-create-dialog', true);
+	if (conf.getConfigString() != before)
+		showToast('Overlay deleted', 'Undo', undo);
 }
 
 
 function showButtonCreator() {
-	resetButtonDialog();
-	document.getElementById('button-create-button').classList.remove('hidden');
-	document.getElementById('button-edit-button').classList.add('hidden');
-	showDialog('button-create-dialog', true);
+	showDialog('add-button-dialog', true);
 }
 
 
-function hideButtonEditor() {
-	showDialog('button-create-dialog', false);
-}
+function showOverlayCreator(isCopy) {
+	document.getElementById(isCopy ? 'chk-duplicate-overlay' : 'overlay-start-blank').checked = true;
+	document.getElementById(screen.isPortrait ? 'chk-portrait-overlay' : 'overlay-orientation-landscape').checked = true;
+	document.getElementById('overlay-name-error').classList.add('hidden');
 
-
-function showOverlayEditor() {
 	updateNewOverlayFields();
 	showDialog('overlay-create-dialog', true);
 }
@@ -2528,27 +2772,6 @@ function hideAspectFixer() {
 }
 
 
-function showScreenSizeDialog() {
-	document.getElementById('display-width').value = screen.longSide;
-	document.getElementById('display-height').value = screen.shortSide;
-	document.getElementById('device-preset').value = '';
-
-	document.getElementById('screenshot-width').value = screen.shotFrameWidth;
-	document.getElementById('screenshot-height').value = screen.shotFrameHeight;
-
-	document.getElementById('radio-screenshot-' + screen.shotMode).checked = true;
-
-	document.getElementById('chk-rescale-to-fit').checked = screen.scale != 1;
-
-	let screenshotMatch = document.getElementById('radio-screenshot-match');
-	screenshotMatch.disabled = (!screen.shotImage || !screen.shotShow);
-
-	onScreenshotModeChange();
-
-	showDialog('screen-size-dialog', true);
-}
-
-
 function applyDevicePreset() {
 	let select = document.getElementById('device-preset');
 	if (!select.value)
@@ -2557,6 +2780,7 @@ function applyDevicePreset() {
 	let size = select.value.split('x');
 	document.getElementById('display-width').value = size[0];
 	document.getElementById('display-height').value = size[1];
+	applyScreenDimensions();
 }
 
 
@@ -2573,43 +2797,26 @@ function onScreenshotModeChange() {
 }
 
 
-function hideScreenSizeDialog() {
-	showDialog('screen-size-dialog', false);
-}
-
-
-function showFileDialog() {
-	document.getElementById('chk-show-screenshot').disabled = !screen.shotImage;
-
-	if (!document.getElementById('export-filename').value)
-		resetExportFilename();
-
-	showDialog('import-export-dialog', true);
-}
-
-
-function hideFileDialog() {
-	showDialog('import-export-dialog', false);
-}
-
-
-function fillImageNameField(event) {
-	document.getElementById('image-name').value = event.target.value;
-	showImagePreview(event.target.value);
-}
-
-
 function fillCommandField(event) {
 	let command = event.target.value;
+	let field = document.getElementById('command-name');
+
+	if (command == CUSTOM_COMMAND) {
+		field.classList.remove('hidden');
+		field.focus();
+		field.select();
+		return;
+	}
+
+	field.classList.add('hidden');
+	field.value = command;
 
 	clearAdditionalPropsFields();
-
-	document.getElementById('command-name').value = command;
 	let lines = showAdditionalParametersForCommand(command);
-	if (lines) {
+	if (lines)
 		fillAdditionalPropsFields(lines.split('\n'));
-		toggleAdditionalButtonProperties(true);
-	}
+
+	applyButtonEdit();
 }
 
 
@@ -2643,131 +2850,62 @@ function toggleOffscreen(event) {
 		screenDiv.classList.remove('show-offscreen');
 		screenDiv.classList.add('hide-offscreen');
 	}
-}
 
-
-function toggleAdditionalButtonProperties(show) {
-	let adds = document.getElementsByClassName('js-additional-button-property');
-	let addBtn = document.getElementById('btn-additional-button');
-
-	if (show || adds[0].classList.contains('hidden')) {
-		addBtn.classList.add('expanded');
-		for (let i = 0; i < adds.length; i++)
-			adds[i].classList.remove('hidden');
-	} else {
-		addBtn.classList.remove('expanded');
-		for (let i = 0; i < adds.length; i++)
-			adds[i].classList.add('hidden');
-	}
-}
-
-
-function toggleAdditionalOverlayProperties(show) {
-	let add = document.getElementById('overlay-properties-container');
-	let addBtn = document.getElementById('overlay-additional-button');
-
-	if (show || add.classList.contains('hidden')) {
-		add.classList.remove('hidden');
-		addBtn.classList.add('expanded');
-	} else {
-		add.classList.add('hidden');
-		addBtn.classList.remove('expanded');
-	}
-}
-
-
-function toggleScreenshotSettings() {
-	let settings = document.getElementById('screenshot-area-settings');
-	let expander = document.getElementById('screenshot-settings-expander')
-
-	if (settings.classList.contains('hidden')) {
-		settings.classList.remove('hidden');
-		expander.classList.add('expanded');
-	} else {
-		settings.classList.add('hidden');
-		expander.classList.remove('expanded');
-	}
+	updateScreenSize();
 }
 
 
 function updateNewOverlayFields() {
 	let box = document.getElementById('raw-overlay-properties');
-	let duplicateChk = document.getElementById('chk-duplicate-overlay');
 	let portraitChk = document.getElementById('chk-portrait-overlay');
-	let editChk = document.getElementById('chk-edit-overlay');
+	let landscapeChk = document.getElementById('overlay-orientation-landscape');
+	let isDuplicate = document.getElementById('chk-duplicate-overlay').checked;
 
-	let isDuplicate = duplicateChk.checked;
-	let isPortrait = portraitChk.checked;
-	let isEdit = editChk.checked;
-
-	if (isEdit)
-		toggleAdditionalOverlayProperties(true);
-
-	let aspect = screen.longSide / screen.shortSide;
-
-	let createBtn = document.getElementById('overlay-create-button');
-	let editBtn = document.getElementById('overlay-edit-button');
-	if (isEdit) {
-		editBtn.classList.remove('hidden')
-		createBtn.classList.add('hidden');
-		duplicateChk.disabled = true;
-		duplicateChk.checked = false;
-		document.getElementById('overlay-name').value = conf.getCurrentOverlayName();
-		_fillCurrentOverlay();
-		return;
-	} else {
-		editBtn.classList.add('hidden')
-		createBtn.classList.remove('hidden');
-		duplicateChk.disabled = false;
-	}
+	portraitChk.disabled = isDuplicate;
+	landscapeChk.disabled = isDuplicate;
 
 	if (isDuplicate) {
-		_fillCurrentOverlay();
+		box.value = conf.getCurrentOverlayParams().join('\n');
+		let isCurrentPortrait = conf.getCurrentOverlayName().search('portrait') != -1;
+		(isCurrentPortrait ? portraitChk : landscapeChk).checked = true;
 	} else {
-		portraitChk.disabled = false;
-		let ratio = 'aspect_ratio = ' + +(isPortrait ? 1 / aspect : aspect).toFixed(7);
+		let aspect = screen.longSide / screen.shortSide;
+		let ratio = 'aspect_ratio = ' + +(portraitChk.checked ? 1 / aspect : aspect).toFixed(7);
 		box.value = defaultParamsForNewOverlay + '\n' + ratio;
-		box.value += '\n' + autoScaleParams + 'auto_y_separation = ' + (isPortrait ? 'false' : 'true');
+		box.value += '\n' + autoScaleParams + 'auto_y_separation = ' + (portraitChk.checked ? 'false' : 'true');
 		box.value += '\n' + manualScaleParams;
 	}
 
-	generateOverlayName(isPortrait);
-
-
-	function _fillCurrentOverlay() {
-		box.value = conf.getCurrentOverlayParams().join('\n');
-		isPortrait = document.getElementById('overlay-selector').value.search('portrait') != -1;
-		portraitChk.checked = isPortrait;
-		portraitChk.disabled = true;
-	}
+	generateOverlayName(portraitChk.checked);
 }
 
 
-function selectOverlay(event) {
-	conf.setCurrentOverlay(event.target.selectedIndex);
+function switchOverlay(index) {
+	deselectAll();
+	conf.setCurrentOverlay(index);
 	conf.setCurrentLine(-1);
+	currentRect = null;
 
-	if (event.target.value.search('portrait') != -1)
+	let name = conf.getCurrentOverlayName();
+
+	if (name.search('portrait') != -1)
 		screen.isPortrait = true;
 
-	if (event.target.value.search('landscape') != -1)
+	if (name.search('landscape') != -1)
 		screen.isPortrait = false;
 
 	document.getElementById('chk-show-portrait').checked = screen.isPortrait;
 
+	updateOverlayList();
 	setScreenDimensions();
 	redrawPad();
-}
-
-
-function showColorsDialog() {
-	showDialog('colors-dialog', true);
 }
 
 
 function setAppTheme(theme) {
 	let isDark = theme == 'dark' || (theme == 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 	document.body.classList.toggle('dark', isDark);
+	document.querySelector('meta[name=theme-color]').content = isDark ? THEME_COLORS.dark : THEME_COLORS.light;
 	document.getElementById('app-theme').value = theme;
 	savePreferences();
 }
@@ -2784,8 +2922,8 @@ function savePreferences() {
 		checkboxes: checkboxes,
 		appTheme: document.getElementById('app-theme').value,
 		colorScheme: colorSchemeIndex,
-		zoom: screen.zoom,
-		screen: screen.isSetByUser ? { _width: screen._width, _height: screen._height, isSetByUser: true, scale: screen.scale } : null,
+		zoom: isZoomFit ? 'fit' : screen.zoom,
+		screen: screen.isSetByUser ? { _width: screen._width, _height: screen._height, isSetByUser: true } : null,
 	};
 
 	try {
@@ -2835,7 +2973,8 @@ function applyPreferences(preferences) {
 		redrawPad();
 	}
 
-	if (preferences.zoom)
+	// Zoom of exactly 100% is the default of older versions, not a choice
+	if (preferences.zoom && preferences.zoom != 'fit' && preferences.zoom != 1)
 		setZoom(preferences.zoom);
 }
 

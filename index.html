@@ -7,11 +7,9 @@
 	<link rel='icon' type='image/svg+xml' href='img/retroarch-icon.svg'>
 	<meta name='viewport' content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1'>
 	<meta name='description' content='Edit onscreen gamepads for RetroArch'>
-	<meta name='theme-color' content='#0088dd'>
+	<meta name='theme-color' content='#1c1b1f'>
 	<link rel='manifest' href='manifest.webmanifest'>
 
-	<link rel='stylesheet' href='css/reset.css'>
-	<link rel='stylesheet' href='css/elements.css'>
 	<link rel='stylesheet' href='css/style.css'>
 
 	<script defer src='js/toast.js'></script>
@@ -20,763 +18,635 @@
 	<script defer src='js/config-handler.js'></script>
 	<script defer src='js/session-store.js'></script>
 	<script defer src='js/zip-writer.js'></script>
+	<script defer src='js/menus.js'></script>
 	<script defer src='js/editor.js'></script>
-	<script defer src='js/file-input-helper.js'></script>
 </head>
 
 <body>
-	<div id='main-container'>
+	<svg class='icon-sprite' aria-hidden='true'>
+		<defs>
+			<symbol id='i-menu' viewBox='0 0 24 24'><path d='M4 7h16M4 12h16M4 17h16' /></symbol>
+			<symbol id='i-chevron' viewBox='0 0 24 24'><path d='m7 10 5 5 5-5' /></symbol>
+			<symbol id='i-undo' viewBox='0 0 24 24'><path d='M9 7 4 12l5 5M4 12h11a5 5 0 0 1 5 5v1' /></symbol>
+			<symbol id='i-redo' viewBox='0 0 24 24'><path d='m15 7 5 5-5 5M20 12H9a5 5 0 0 0-5 5v1' /></symbol>
+			<symbol id='i-plus' viewBox='0 0 24 24'><path d='M12 5v14M5 12h14' /></symbol>
+			<symbol id='i-minus' viewBox='0 0 24 24'><path d='M5 12h14' /></symbol>
+			<symbol id='i-close' viewBox='0 0 24 24'><path d='M6 6l12 12M18 6 6 18' /></symbol>
+			<symbol id='i-open' viewBox='0 0 24 24'><path d='M3 19V6a1 1 0 0 1 1-1h5l2 3h8a1 1 0 0 1 1 1v2M3 19l3-8h16l-3 8H3Z' /></symbol>
+			<symbol id='i-image' viewBox='0 0 24 24'><rect x='3' y='5' width='18' height='14' rx='1.5' /><circle cx='8.5' cy='10' r='1.5' /><path d='m4 18 5-5 3 3 3-4 5 6' /></symbol>
+			<symbol id='i-screenshot' viewBox='0 0 24 24'><rect x='3' y='5' width='18' height='14' rx='1.5' /><path d='M7 15h3M8.5 13.500v3M15 14h.01M18 16h.01' /></symbol>
+			<symbol id='i-templates' viewBox='0 0 24 24'><rect x='4' y='4' width='7' height='7' rx='1' /><rect x='13' y='4' width='7' height='7' rx='1' /><rect x='4' y='13' width='7' height='7' rx='1' /><rect x='13' y='13' width='7' height='7' rx='1' /></symbol>
+			<symbol id='i-code' viewBox='0 0 24 24'><path d='m8 8-4 4 4 4M16 8l4 4-4 4M13.500 6l-3 12' /></symbol>
+			<symbol id='i-revert' viewBox='0 0 24 24'><path d='M4 5v5h5M4.500 10a8 8 0 1 1-.5 4' /></symbol>
+			<symbol id='i-help' viewBox='0 0 24 24'><circle cx='12' cy='12' r='9' /><path d='M9.500 9.500a2.500 2.500 0 1 1 3.700 2.200c-.8.4-1.200 1-1.200 1.800M12 17h.01' /></symbol>
+			<symbol id='i-download' viewBox='0 0 24 24'><path d='M12 4v11M7 11l5 5 5-5M4 20h16' /></symbol>
+			<symbol id='i-play' viewBox='0 0 24 24'><path d='M7 5v14l11-7L7 5Z' /></symbol>
+			<symbol id='i-copy' viewBox='0 0 24 24'><rect x='9' y='9' width='11' height='11' rx='1.500' /><path d='M15 9V5.500A1.500 1.500 0 0 0 13.500 4h-8A1.500 1.500 0 0 0 4 5.500v8A1.500 1.500 0 0 0 5.500 15H9' /></symbol>
+			<symbol id='i-mirror' viewBox='0 0 24 24'><path d='M12 3v18' stroke-dasharray='2 3' /><path d='M9 7v10l-6-5 6-5ZM15 7v10l6-5-6-5Z' /></symbol>
+			<symbol id='i-trash' viewBox='0 0 24 24'><path d='M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5' /></symbol>
+			<symbol id='i-up' viewBox='0 0 24 24'><path d='M12 19V5M6 11l6-6 6 6' /></symbol>
+			<symbol id='i-down' viewBox='0 0 24 24'><path d='M12 5v14M6 13l6 6 6-6' /></symbol>
+			<symbol id='i-magnet' viewBox='0 0 24 24'><path d='M5 4v8a7 7 0 0 0 14 0V4h-4v8a3 3 0 0 1-6 0V4H5ZM5 8h4M15 8h4' /></symbol>
+			<symbol id='i-eye' viewBox='0 0 24 24'><path d='M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z' /><circle cx='12' cy='12' r='3' /></symbol>
+			<symbol id='i-rotate' viewBox='0 0 24 24'><rect x='8' y='3' width='8' height='14' rx='1.500' /><path d='M21 15a6 6 0 0 1-5 5.900M3 15a6 6 0 0 0 5 5.900M6 18l2 3-3 1' /></symbol>
+			<symbol id='i-fit' viewBox='0 0 24 24'><path d='M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5' /></symbol>
+			<symbol id='i-flip-x' viewBox='0 0 24 24'><path d='M12 3v18' stroke-dasharray='2 3' /><path d='M4 12h5M7 9.500 9.500 12 7 14.500M20 12h-5M17 9.500 14.500 12l2.500 2.500' /></symbol>
+			<symbol id='i-flip-y' viewBox='0 0 24 24'><path d='M3 12h18' stroke-dasharray='2 3' /><path d='M12 4v5M9.500 7 12 9.500 14.500 7M12 20v-5M9.500 17l2.500-2.500 2.500 2.500' /></symbol>
+			<symbol id='i-square' viewBox='0 0 24 24'><rect x='5' y='5' width='14' height='14' rx='1.500' /><path d='M9 12h6' /></symbol>
+			<symbol id='i-square-v' viewBox='0 0 24 24'><rect x='5' y='5' width='14' height='14' rx='1.500' /><path d='M12 9v6' /></symbol>
+			<symbol id='i-align-left' viewBox='0 0 24 24'><path d='M4 3v18M8 7h10v4H8zM8 14h6v4H8z' /></symbol>
+			<symbol id='i-align-hcenter' viewBox='0 0 24 24'><path d='M12 3v18M6 7h12v4H6zM8.500 14h7v4h-7z' /></symbol>
+			<symbol id='i-align-right' viewBox='0 0 24 24'><path d='M20 3v18M6 7h10v4H6zM10 14h6v4h-6z' /></symbol>
+			<symbol id='i-align-top' viewBox='0 0 24 24'><path d='M3 4h18M7 8h4v10H7zM14 8h4v6h-4z' /></symbol>
+			<symbol id='i-align-vcenter' viewBox='0 0 24 24'><path d='M3 12h18M7 6h4v12H7zM14 8.500h4v7h-4z' /></symbol>
+			<symbol id='i-align-bottom' viewBox='0 0 24 24'><path d='M3 20h18M7 6h4v10H7zM14 10h4v6h-4z' /></symbol>
+			<symbol id='i-spread-x' viewBox='0 0 24 24'><path d='M4 4v16M20 4v16M9.500 8h5v8h-5z' /></symbol>
+			<symbol id='i-spread-y' viewBox='0 0 24 24'><path d='M4 4h16M4 20h16M8 9.500h8v5H8z' /></symbol>
+			<symbol id='i-layers' viewBox='0 0 24 24'><path d='m12 4 9 5-9 5-9-5 9-5ZM3 14l9 5 9-5' /></symbol>
+			<symbol id='i-sliders' viewBox='0 0 24 24'><path d='M4 7h9M17 7h3M4 17h3M11 17h9' /><circle cx='15' cy='7' r='2' /><circle cx='9' cy='17' r='2' /></symbol>
+		</defs>
+	</svg>
 
-		<div id='header'>
-			<button class='important' onclick='showFileDialog()'>Import • Export</button>
-			<button class='danger button--normal-size' onclick='showDialog("reset-dialog", true)'>Reset</button>
-			<button class='button--normal-size' id='undo-button' title='Undo (Ctrl+Z)' onclick='undo()' disabled>Undo</button>
-			<button class='button--normal-size' id='redo-button' title='Redo (Ctrl+Y)' onclick='redo()' disabled>Redo</button>
-			<button class='button--normal-size' onclick='showDialog("template-dialog", true)'>Templates</button>
-			<span id='header__caption'><img src='img/retroarch-icon.svg' alt=''>RetroPad Editor</span>
-		</div>
+	<div id='app'>
 
-		<div id='workarea-container'>
-			<div id='toolbar'>
+		<header id='topbar'>
+			<div class='menu-anchor'>
+				<button class='btn btn--ghost' id='file-menu-button' aria-haspopup='menu' aria-expanded='false' aria-controls='file-menu' data-menu='file-menu'>
+					<img id='brand-mark' src='img/retroarch-icon.svg' alt=''>
+					<span class='label-wide'>File</span>
+					<svg class='icon icon--small'><use href='#i-chevron' /></svg>
+				</button>
+				<div id='file-menu' class='menu hidden' role='menu'>
+					<button role='menuitem' onclick='showDialog("template-dialog", true)'><svg class='icon'><use href='#i-templates' /></svg>New from template…</button>
+					<button role='menuitem' onclick='pickFile("load-config")'><svg class='icon'><use href='#i-open' /></svg>Open config…</button>
+					<hr>
+					<button role='menuitem' onclick='pickFile("load-button-images")'><svg class='icon'><use href='#i-image' /></svg>Add button images…</button>
+					<button role='menuitem' onclick='pickFile("load-screenshot")'><svg class='icon'><use href='#i-screenshot' /></svg>Set game screenshot…</button>
+					<button role='menuitem' onclick='showConfigTextDialog()'><svg class='icon'><use href='#i-code' /></svg>Edit config as text…</button>
+					<hr>
+					<button role='menuitem' id='revert-button' onclick='resetPad()'><svg class='icon'><use href='#i-revert' /></svg>Revert to opened version</button>
+				</div>
+			</div>
 
-				<div class='toolbar-group'>
-					<span class='group-header'>TOOLS</span>
-					<div class='join-buttons-div'>
-						<button onclick='showScreenSizeDialog()'>Set screen size</button>
-						<button title='Color theme' id='show-colors-button' onclick='showColorsDialog()'>C</button>
+			<div class='btn-group'>
+				<button class='btn btn--ghost btn--icon' id='undo-button' data-tip='Undo (Ctrl+Z)' aria-label='Undo' onclick='undo()' disabled><svg class='icon'><use href='#i-undo' /></svg></button>
+				<button class='btn btn--ghost btn--icon' id='redo-button' data-tip='Redo (Ctrl+Y)' aria-label='Redo' onclick='redo()' disabled><svg class='icon'><use href='#i-redo' /></svg></button>
+			</div>
+
+			<div id='doc-title' class='notranslate' translate='no'>
+				<span id='doc-name'></span>
+				<span id='doc-status' translate='yes'></span>
+			</div>
+
+			<label class='btn btn--toggle' id='test-toggle' data-tip='Try the touch areas'>
+				<input type='checkbox' id='chk-test-mode' class='visually-hidden' autocomplete='off'>
+				<svg class='icon'><use href='#i-play' /></svg>
+				<span class='label-wide'>Test</span>
+			</label>
+			<button class='btn btn--ghost btn--icon' data-tip='Help and shortcuts' aria-label='Help and shortcuts' onclick='showDialog("help-dialog", true)'><svg class='icon'><use href='#i-help' /></svg></button>
+			<button class='btn btn--primary' id='export-open-button' onclick='showExportDialog()'><svg class='icon'><use href='#i-download' /></svg>Export</button>
+		</header>
+
+		<aside id='panel-outline' class='panel' aria-label='Overlays and buttons'>
+			<section id='overlays-section'>
+				<div class='panel-heading'>
+					<h2>Overlays</h2>
+					<button class='btn btn--ghost btn--small' id='overlay-add-button' onclick='showOverlayCreator()'><svg class='icon icon--small'><use href='#i-plus' /></svg>Add</button>
+				</div>
+				<ul id='overlay-list' class='row-list notranslate' translate='no'></ul>
+			</section>
+
+			<section id='buttons-section'>
+				<div class='panel-heading'>
+					<h2>Buttons</h2>
+					<button class='btn btn--ghost btn--small' id='button-add-button' onclick='showButtonCreator()'><svg class='icon icon--small'><use href='#i-plus' /></svg>Add</button>
+				</div>
+				<ul id='button-list' class='row-list notranslate' translate='no'></ul>
+			</section>
+		</aside>
+
+		<main id='stage'>
+			<div id='test-banner' class='hidden'>
+				<span>Press anywhere on the screen to see which inputs respond.</span>
+				<button class='btn btn--small' onclick='setTestMode(false)'>Done</button>
+			</div>
+
+			<div id='gamepad-container' class='notranslate' translate='no'>
+				<div id='gamepad-container__scroll-frame'>
+					<div id='screenpad' class='hide-offscreen'>
+						<div id='game-screenshot'></div>
 					</div>
-					<div class='join-buttons-div' id='zoom-controls'>
-						<button class='button--normal-size' id='zoom-out' title='Zoom out' onclick='changeZoom(-1)'>&minus;</button>
-						<button class='button--normal-size' id='zoom-value' title='Reset zoom' onclick='setZoom(1)'>100%</button>
-						<button class='button--normal-size' id='zoom-in' title='Zoom in' onclick='changeZoom(1)'>+</button>
-					</div>
-					<br>
-					<div class='toolbar-group__checkboxes'>
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-show-shapes' autocomplete='off'>
-							<label for='chk-show-shapes'>Show shapes</label>
-						</div>
+				</div>
+			</div>
 
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-show-names' autocomplete='off' checked>
-							<label for='chk-show-names'>Show names</label>
-						</div>
+			<div id='statusbar'>
+				<label class='btn btn--toggle btn--small' data-tip='Switch between landscape and portrait'>
+					<input type='checkbox' id='chk-show-portrait' class='visually-hidden' autocomplete='off'>
+					<svg class='icon icon--small'><use href='#i-rotate' /></svg>
+					<span id='orientation-label'>Landscape</span>
+				</label>
+				<label class='btn btn--toggle btn--small' data-tip='Snap to grid and other buttons. Hold Alt to ignore.'>
+					<input type='checkbox' id='chk-snap' class='visually-hidden' autocomplete='off'>
+					<svg class='icon icon--small'><use href='#i-magnet' /></svg>
+					<span class='label-wide'>Snap</span>
+				</label>
 
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-show-portrait' autocomplete='off'>
-							<label for='chk-show-portrait'>Portrait</label>
+				<div class='menu-anchor'>
+					<button class='btn btn--ghost btn--small' aria-haspopup='true' aria-expanded='false' aria-controls='view-menu' data-menu='view-menu'>
+						<svg class='icon icon--small'><use href='#i-eye' /></svg>View
+						<svg class='icon icon--small'><use href='#i-chevron' /></svg>
+					</button>
+					<div id='view-menu' class='menu menu--up hidden'>
+						<label class='switch-row'>Button names
+							<input type='checkbox' id='chk-show-names' class='switch' autocomplete='off' checked>
+						</label>
+						<label class='switch-row'>Touch areas
+							<input type='checkbox' id='chk-show-shapes' class='switch' autocomplete='off'>
+						</label>
+						<label class='switch-row'>Area outside the screen
+							<input type='checkbox' id='chk-show-offscreen' class='switch' autocomplete='off'>
+						</label>
+						<hr>
+						<div class='menu-field'>
+							<span class='field-label'>Screen colour</span>
+							<div class='swatches'>
+								<label class='swatch swatch--0' title='Slate'><input type='radio' class='visually-hidden' name='color-scheme-radio' id='color-scheme-0' aria-label='Slate' autocomplete='off' checked onchange='setColorScheme(0)'></label>
+								<label class='swatch swatch--1' title='Night blue'><input type='radio' class='visually-hidden' name='color-scheme-radio' id='color-scheme-1' aria-label='Night blue' autocomplete='off' onchange='setColorScheme(1)'></label>
+								<label class='swatch swatch--2' title='Phosphor green'><input type='radio' class='visually-hidden' name='color-scheme-radio' id='color-scheme-2' aria-label='Phosphor green' autocomplete='off' onchange='setColorScheme(2)'></label>
+							</div>
 						</div>
-
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-show-offscreen' autocomplete='off'>
-							<label for='chk-show-offscreen'>Show offscreen</label>
-						</div>
-
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-snap' autocomplete='off'>
-							<label for='chk-snap' title='Hold Alt while dragging to ignore snapping'>Snap</label>
-						</div>
-
-						<div class='checkbox-wrapper'>
-							<input type='checkbox' id='chk-test-mode' autocomplete='off'>
-							<label for='chk-test-mode' title='Try which buttons respond to a press'>Test mode</label>
+						<div class='menu-field'>
+							<label class='field-label' for='app-theme'>Appearance</label>
+							<select id='app-theme' onchange='setAppTheme(this.value)'>
+								<option value='auto'>Match system</option>
+								<option value='light'>Light</option>
+								<option value='dark'>Dark</option>
+							</select>
 						</div>
 					</div>
 				</div>
 
-				<div class='toolbar-group'>
-					<span class='group-header'>OVERLAY</span>
-					<select id='overlay-selector' class='notranslate' translate='no'></select>
-					<button class='button--normal-size' id='overlay-move-up' title='Move overlay up' aria-label='Move overlay up' onclick='moveOverlay(-1)'>&uarr;</button>
-					<button class='button--normal-size' id='overlay-move-down' title='Move overlay down' aria-label='Move overlay down' onclick='moveOverlay(1)'>&darr;</button>
-					<div class='toolbar-group__buttons'>
-						<button onclick='showOverlayEditor()'>Create • Edit</button>
-						<button onclick='showDialog("overlay-delete-dialog", true)'>Delete overlay</button>
-						<button onclick='showAspectFixer()'>Fix aspect ratio</button>
-						<button onclick='showConfigTextDialog()'>Config text</button>
-					</div>
-				</div>
+				<span id='status-size' class='notranslate' translate='no'></span>
 
-				<details class='toolbar-group' id='align-group'>
-					<summary class='group-header'>ALIGN</summary>
-					<div class='toolbar-group__buttons' id='align-buttons'>
-						<button class='button--normal-size' onclick='alignSelection("left")'>Left</button>
-						<button class='button--normal-size' onclick='alignSelection("hcenter")'>Center</button>
-						<button class='button--normal-size' onclick='alignSelection("right")'>Right</button>
-						<button class='button--normal-size' onclick='alignSelection("top")'>Top</button>
-						<button class='button--normal-size' onclick='alignSelection("vcenter")'>Middle</button>
-						<button class='button--normal-size' onclick='alignSelection("bottom")'>Bottom</button>
-						<button class='button--normal-size' onclick='distributeSelection("x")' title='Space evenly from left to right'>Spread X</button>
-						<button class='button--normal-size' onclick='distributeSelection("y")' title='Space evenly from top to bottom'>Spread Y</button>
-					</div>
-				</details>
-
-				<div class='toolbar-group'>
-					<span class='group-header'>BUTTON</span>
-					<div class='toolbar-group__buttons'>
-						<button onclick='showButtonCreator()'>New button</button>
-						<button id='del-current-button' title='Delete' onclick='showDialog("button-delete-dialog", true)'>Delete
-							button</button>
-						<button id='show-button-editor' onclick='showButtonEditor()'>Edit
-							button</button>
-						<button id='duplicate-button' title='Duplicate (Ctrl+D)' onclick='duplicateSelection()'>Duplicate</button>
-						<button id='mirror-button' title='Copy to the other side of the screen' onclick='mirrorSelection()'>Mirror copy</button>
-					</div>
+				<div class='btn-group' id='zoom-controls'>
+					<button class='btn btn--ghost btn--icon btn--small' id='zoom-out' data-tip='Zoom out (−)' aria-label='Zoom out' onclick='changeZoom(-1)'><svg class='icon icon--small'><use href='#i-minus' /></svg></button>
+					<span id='zoom-value' class='notranslate' translate='no'>100%</span>
+					<button class='btn btn--ghost btn--icon btn--small' id='zoom-in' data-tip='Zoom in (+)' aria-label='Zoom in' onclick='changeZoom(1)'><svg class='icon icon--small'><use href='#i-plus' /></svg></button>
+					<button class='btn btn--ghost btn--icon btn--small' id='zoom-fit' data-tip='Fit to window (0)' aria-label='Fit to window' onclick='fitZoom()'><svg class='icon icon--small'><use href='#i-fit' /></svg></button>
 				</div>
-				<details class='toolbar-group' id='button-list-group'>
-					<summary class='group-header'>BUTTON LIST</summary>
-					<ul id='button-list' class='notranslate' translate='no'></ul>
+			</div>
+		</main>
+
+		<aside id='inspector' class='panel' data-mode='overlay' aria-label='Properties'>
+
+			<!-- Nothing selected: current overlay and screen -->
+			<div class='inspector-pane' data-for='overlay'>
+				<section>
+					<div class='panel-heading'>
+						<h2>Overlay</h2>
+						<div class='btn-group'>
+							<button class='btn btn--ghost btn--icon btn--small' title='Duplicate overlay' aria-label='Duplicate overlay' onclick='showOverlayCreator(true)'><svg class='icon icon--small'><use href='#i-copy' /></svg></button>
+							<button class='btn btn--ghost btn--icon btn--small' id='overlay-move-up' title='Move overlay up' aria-label='Move overlay up' onclick='moveOverlay(-1)'><svg class='icon icon--small'><use href='#i-up' /></svg></button>
+							<button class='btn btn--ghost btn--icon btn--small' id='overlay-move-down' title='Move overlay down' aria-label='Move overlay down' onclick='moveOverlay(1)'><svg class='icon icon--small'><use href='#i-down' /></svg></button>
+							<button class='btn btn--ghost btn--icon btn--small btn--danger' id='overlay-delete' title='Delete overlay' aria-label='Delete overlay' onclick='delCurrentOverlay()'><svg class='icon icon--small'><use href='#i-trash' /></svg></button>
+						</div>
+					</div>
+					<div class='field'>
+						<label class='field-label' for='overlay-current-name'>Name</label>
+						<input type='text' id='overlay-current-name' class='notranslate' translate='no' autocomplete='off' spellcheck='false'>
+						<p class='field-note'>A name containing “portrait” or “landscape” sets the orientation when you switch to it.</p>
+					</div>
+					<p class='hint'>Select a button on the screen to edit it. Drag across empty space to select several.</p>
+				</section>
+
+				<section>
+					<div class='panel-heading'><h2>Screen</h2></div>
+					<div class='field'>
+						<label class='field-label' for='device-preset'>Device</label>
+						<select id='device-preset' onchange='applyDevicePreset()'>
+							<option value=''>Custom size</option>
+							<option value='1920x1080'>Phone 16:9 (1920 × 1080)</option>
+							<option value='2340x1080'>Phone 19.5:9 (2340 × 1080)</option>
+							<option value='2400x1080'>Phone 20:9 (2400 × 1080)</option>
+							<option value='2560x1440'>Phone QHD (2560 × 1440)</option>
+							<option value='2048x1536'>Tablet 4:3 (2048 × 1536)</option>
+							<option value='2560x1600'>Tablet 16:10 (2560 × 1600)</option>
+							<option value='1280x800'>Steam Deck (1280 × 800)</option>
+							<option value='1280x720'>Nintendo Switch handheld (1280 × 720)</option>
+							<option value='640x480'>Handheld 4:3 (640 × 480)</option>
+						</select>
+					</div>
+					<div class='field-pair'>
+						<div class='field'>
+							<label class='field-label' for='display-width'>Long side</label>
+							<input type='number' id='display-width' min='1' step='any' onchange='applyScreenDimensions()'>
+						</div>
+						<span class='field-pair__by'>×</span>
+						<div class='field'>
+							<label class='field-label' for='display-height'>Short side</label>
+							<input type='number' id='display-height' min='1' step='any' onchange='applyScreenDimensions()'>
+						</div>
+					</div>
+					<button class='btn btn--full' onclick='showAspectFixer()'>Fit buttons to a new aspect ratio…</button>
+				</section>
+
+				<section>
+					<div class='panel-heading'><h2>Game area</h2></div>
+					<p class='field-note'>The part of the screen the game covers. Use it to keep buttons clear of the action.</p>
+					<div class='field-inline'>
+						<button class='btn' onclick='pickFile("load-screenshot")'><svg class='icon icon--small'><use href='#i-screenshot' /></svg>Screenshot…</button>
+						<label class='switch-row switch-row--compact'>Show
+							<input type='checkbox' id='chk-show-screenshot' class='switch' autocomplete='off' disabled>
+						</label>
+					</div>
+					<div class='field'>
+						<span class='field-label'>Size</span>
+						<div class='radio-stack'>
+							<label><input type='radio' onchange='onScreenshotModeChange(); applyScreenDimensions()' id='radio-screenshot-fit' name='screenshot-mode'>Fit the screen</label>
+							<label><input type='radio' onchange='onScreenshotModeChange(); applyScreenDimensions()' id='radio-screenshot-set' name='screenshot-mode'>Exact size</label>
+							<label><input type='radio' onchange='onScreenshotModeChange(); applyScreenDimensions()' id='radio-screenshot-match' name='screenshot-mode'>Same as screenshot</label>
+						</div>
+					</div>
+					<div class='field-pair'>
+						<div class='field'>
+							<label class='field-label' for='screenshot-width'>Width</label>
+							<input type='number' id='screenshot-width' min='1' step='any' onchange='applyScreenDimensions()'>
+						</div>
+						<span class='field-pair__by'>×</span>
+						<div class='field'>
+							<label class='field-label' for='screenshot-height'>Height</label>
+							<input type='number' id='screenshot-height' min='1' step='any' onchange='applyScreenDimensions()'>
+						</div>
+					</div>
+				</section>
+
+				<details class='panel-details'>
+					<summary>Advanced overlay properties</summary>
+					<label class='field-label' for='raw-overlay-current'>One <code>property = value</code> per line</label>
+					<textarea spellcheck='false' id='raw-overlay-current' class='code notranslate' translate='no' rows='8'></textarea>
 				</details>
 			</div>
 
-			<div id='editor-container' class='notranslate' translate='no'>
-				<div id='gamepad-container'>
-					<div id='gamepad-container__scroll-frame'>
-						<div id='screenpad' class='hide-offscreen'>
-							<div id='game-screenshot'></div>
+			<!-- One or more buttons selected -->
+			<div class='inspector-pane' data-for='single multi'>
+				<section>
+					<div class='panel-heading'>
+						<h2 id='selection-title' class='notranslate' translate='no'>Button</h2>
+						<div class='btn-group'>
+							<button class='btn btn--ghost btn--icon btn--small' id='duplicate-button' title='Duplicate (Ctrl+D)' aria-label='Duplicate' onclick='duplicateSelection()'><svg class='icon icon--small'><use href='#i-copy' /></svg></button>
+							<button class='btn btn--ghost btn--icon btn--small' id='mirror-button' title='Copy to the opposite side of the screen' aria-label='Mirror copy' onclick='mirrorSelection()'><svg class='icon icon--small'><use href='#i-mirror' /></svg></button>
+							<button class='btn btn--ghost btn--icon btn--small btn--danger' id='del-current-button' title='Delete (Del)' aria-label='Delete' onclick='delCurrentButton()'><svg class='icon icon--small'><use href='#i-trash' /></svg></button>
 						</div>
 					</div>
-				</div>
 
-				<div id='editor'>
-					<div>
-						<span>X</span>
+					<div data-for='single'>
+						<div class='field'>
+							<label class='field-label' for='command-select'>Input</label>
+							<select class='notranslate' translate='no' id='command-select'></select>
+							<input type='text' id='command-name' class='code hidden notranslate' translate='no' aria-label='Custom command' autocomplete='off' spellcheck='false' placeholder='left|up'>
+						</div>
+
+						<div class='field'>
+							<label class='field-label' for='image-name'>Image</label>
+							<div class='image-field'>
+								<button class='image-well' id='image-picker-button' title='Choose an image' aria-label='Choose an image' onclick='showImagePicker()'></button>
+								<input type='text' id='image-name' class='notranslate' translate='no' autocomplete='off' spellcheck='false' placeholder='No image'>
+							</div>
+						</div>
+
+						<div class='field'>
+							<span class='field-label'>Touch area</span>
+							<div class='segmented'>
+								<label><input type='radio' name='button-shape' id='shape-radial' value='radial' class='visually-hidden' autocomplete='off'><span>Round</span></label>
+								<label><input type='radio' name='button-shape' id='shape-rect' value='rect' class='visually-hidden' autocomplete='off'><span>Rectangle</span></label>
+							</div>
+						</div>
+					</div>
+
+					<div data-for='multi'>
+						<span class='field-label'>Align</span>
+						<div class='tool-grid' id='align-buttons'>
+							<button class='btn btn--icon' title='Align left' aria-label='Align left' onclick='alignSelection("left")'><svg class='icon'><use href='#i-align-left' /></svg></button>
+							<button class='btn btn--icon' title='Align centres' aria-label='Align centres' onclick='alignSelection("hcenter")'><svg class='icon'><use href='#i-align-hcenter' /></svg></button>
+							<button class='btn btn--icon' title='Align right' aria-label='Align right' onclick='alignSelection("right")'><svg class='icon'><use href='#i-align-right' /></svg></button>
+							<button class='btn btn--icon' title='Space evenly, left to right' aria-label='Space evenly, left to right' onclick='distributeSelection("x")'><svg class='icon'><use href='#i-spread-x' /></svg></button>
+							<button class='btn btn--icon' title='Align top' aria-label='Align top' onclick='alignSelection("top")'><svg class='icon'><use href='#i-align-top' /></svg></button>
+							<button class='btn btn--icon' title='Align middles' aria-label='Align middles' onclick='alignSelection("vcenter")'><svg class='icon'><use href='#i-align-vcenter' /></svg></button>
+							<button class='btn btn--icon' title='Align bottom' aria-label='Align bottom' onclick='alignSelection("bottom")'><svg class='icon'><use href='#i-align-bottom' /></svg></button>
+							<button class='btn btn--icon' title='Space evenly, top to bottom' aria-label='Space evenly, top to bottom' onclick='distributeSelection("y")'><svg class='icon'><use href='#i-spread-y' /></svg></button>
+						</div>
+					</div>
+				</section>
+
+				<section id='editor'>
+					<div class='panel-heading'><h2>Position</h2></div>
+					<div class='coord'>
+						<span title='Horizontal centre, 0 to 1'>X</span>
 						<input type='range' max=1 step=0.00001 id='x-range' aria-label='X position'>
 						<input type='number' step=any id='x-number' aria-label='X position'>
-						<button id='flip-x' onclick='flipCoord("x")'>Flip</button>
+						<button class='btn btn--ghost btn--icon btn--small' id='flip-x' title='Flip to the opposite side' aria-label='Flip horizontally' onclick='flipCoord("x")'><svg class='icon icon--small'><use href='#i-flip-x' /></svg></button>
 					</div>
-
-					<div>
-						<span>Y</span>
+					<div class='coord'>
+						<span title='Vertical centre, 0 to 1'>Y</span>
 						<input type='range' max=1 step=0.00001 id='y-range' aria-label='Y position'>
 						<input type='number' step=any id='y-number' aria-label='Y position'>
-						<button id='flip-y' onclick='flipCoord("y")'>Flip</button>
+						<button class='btn btn--ghost btn--icon btn--small' id='flip-y' title='Flip to the opposite side' aria-label='Flip vertically' onclick='flipCoord("y")'><svg class='icon icon--small'><use href='#i-flip-y' /></svg></button>
 					</div>
 
-					<div>
-						<span>W</span>
+					<div class='panel-heading panel-heading--sub'><h2>Size</h2></div>
+					<div class='coord'>
+						<span title='Half of the width, 0 to 1'>W</span>
 						<input type='range' max=1 step=0.00001 id='w-range' aria-label='Width'>
 						<input type='number' step=any id='w-number' aria-label='Width'>
-						<button id='norm-width' onclick='normalizeWidth()'>Quad</button>
+						<button class='btn btn--ghost btn--icon btn--small' id='norm-width' title='Make square by changing the width' aria-label='Make square by changing the width' onclick='normalizeWidth()'><svg class='icon icon--small'><use href='#i-square' /></svg></button>
 					</div>
-
-					<div>
-						<span>H</span>
+					<div class='coord'>
+						<span title='Half of the height, 0 to 1'>H</span>
 						<input type='range' max=1 step=0.00001 id='h-range' aria-label='Height'>
 						<input type='number' step=any id='h-number' aria-label='Height'>
-						<button id='norm-height' onclick='normalizeHeight()'>Quad</button>
+						<button class='btn btn--ghost btn--icon btn--small' id='norm-height' title='Make square by changing the height' aria-label='Make square by changing the height' onclick='normalizeHeight()'><svg class='icon icon--small'><use href='#i-square-v' /></svg></button>
 					</div>
-				</div>
+				</section>
 
-			</div>
-		</div>
+				<details class='panel-details' id='button-advanced' data-for='single'>
+					<summary>Advanced button properties</summary>
 
-		<div id='footer'>
-			<a href='https://github.com/valent-in/retropad-editor' target='_blank' rel='noopener'>GitHub</a>
-			<a href='https://forums.libretro.com/t/retropad-editor-create-and-edit-onscreen-gamepads' target='_blank'
-				rel='noopener'>Forum</a>
-			<a href='https://www.retroarch.com' target='_blank' rel='noopener'>RetroArch</a>
-			<span id='version'>v0.9.9</span>
-		</div>
-
-
-		<!-- Dialogs (hidden by default) -->
-		<div id='button-create-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Button properties</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideButtonEditor()'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<table id='button-properties-table'>
-						<tr>
-							<td>
-								<label for='command-name'>Command</label>
-							</td>
-
-							<td>
-								<input type='text' id='command-name' class='js-dialog__focus'>
-								<select class='miniselect notranslate' translate='no' id='command-select' aria-label='Command list'></select>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<label for='image-name'>Image</label>
-							</td>
-
-							<td>
-								<input type='text' id='image-name'>
-								<select class='miniselect notranslate' translate='no' id='image-select' aria-label='Image list'></select>
-								<button class='button--normal-size' id='image-picker-button' title='Choose from thumbnails' aria-label='Choose from thumbnails' onclick='showImagePicker()'>&#9638;</button>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<label for='button-shape' class='help-label' title='Shape of the touch area: rectangle or ellipse.'>Shape</label>
-							</td>
-
-							<td>
-								<select id='button-shape' class='notranslate' translate='no'>
-									<option>rect</option>
-									<option>radial</option>
-								</select>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<button class='empty expander button--normal-size' id='btn-additional-button'
-									onclick='toggleAdditionalButtonProperties()'>Additional</button>
-							</td>
-							<td></td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
-								<label for='next_target_property' class='notranslate help-label' translate='no' title='Overlay to open when this button is pressed. Used with overlay_next.'>next_target</label>
-							</td>
-
-							<td>
-								<select id='next_target_property' class='notranslate' translate='no'></select>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
-								<label for='range_mod_property' class='notranslate help-label' translate='no' title='Multiplies the touch area of the button. 1.0 is the button size.'>range_mod</label>
-							</td>
-
-							<td>
-								<input type='number' step=0.01 id='range_mod_property'>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
-								<label for='alpha_mod_property' class='notranslate help-label' translate='no' title='Multiplies the opacity of the button image while it is pressed.'>alpha_mod</label>
-							</td>
-
-							<td>
-								<input type='number' step=0.01 id='alpha_mod_property'>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
-								<label for='saturate_pct_property' class='notranslate help-label' title='Part of the analog stick range at which input reaches its maximum. Example: 0.65.'
-									translate='no'>saturate_pct</label>
-							</td>
-
-							<td>
-								<input type='number' step=0.01 id='saturate_pct_property'>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
-								<label for='movable_property' class='notranslate help-label' translate='no' title='Analog stick image follows the finger.'>movable</label>
-							</td>
-
-							<td>
-								<select id='movable_property' class='notranslate' translate='no'>
-									<option></option>
-									<option>false</option>
-									<option>true</option>
-								</select>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td class='vertical-align-top'>
-								<label for='raw-button-properties'>Raw data:</label>
-								<br>
-								<span class='small-warning'>Edit carefully!</span>
-							</td>
-
-							<td>
-								<textarea spellcheck='false' id='raw-button-properties'></textarea>
-							</td>
-						</tr>
-					</table>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important' id='button-create-button' onclick='addButton()'>Create
-						button</button>
-					<button class='important' id='button-edit-button' onclick='editButton()'>Edit
-						button</button>
-					<button onclick='hideButtonEditor()'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-
-		<div id='overlay-create-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Create/Edit overlay</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideOverlayEditor()'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<div class='dialog-content-box__section'>
-						<label for='overlay-name'>Overlay name</label>
-						<input type='text' id='overlay-name' class='js-dialog__focus' autocomplete='off'>
-						<br class='wide'>
-						<input type='checkbox' autocomplete='off' id='chk-edit-overlay'
-							onchange='updateNewOverlayFields()'>
-						<label for='chk-edit-overlay' class='group-header'>Edit current overlay</label>
-						<br class='wide'>
-						<input type='checkbox' autocomplete='off' id='chk-duplicate-overlay'
-							onchange='updateNewOverlayFields()'>
-						<label for='chk-duplicate-overlay'>Duplicate current overlay</label>
-						<br class='wide'>
-						<input type='checkbox' autocomplete='off' id='chk-portrait-overlay'
-							onchange='updateNewOverlayFields()'>
-						<label for='chk-portrait-overlay'>Portrait</label>
+					<div class='field js-additional-button-property' data-commands='overlay_next'>
+						<label class='field-label' for='next_target_property'>Switches to overlay</label>
+						<select id='next_target_property' class='notranslate' translate='no'></select>
 					</div>
-					<div class='dialog-content-box__section'>
-						<button class='empty expander button--normal-size' onclick='toggleAdditionalOverlayProperties()'
-							id='overlay-additional-button'>Additional</button>
-						<div id='overlay-properties-container' class='dialog-content-box__expandable hidden'>
-							<span class='small-warning'>WARNING! Edit carefully!</span>
-							<br>
-							<textarea spellcheck='false' id='raw-overlay-properties'></textarea>
+					<div class='field-pair js-additional-button-property'>
+						<div class='field'>
+							<label class='field-label' for='range_mod_property' title='Multiplies the touch area of the button. 1 is the button size.'>Touch area scale</label>
+							<input type='number' step=0.01 id='range_mod_property'>
+						</div>
+						<span class='field-pair__by'></span>
+						<div class='field'>
+							<label class='field-label' for='alpha_mod_property' title='Multiplies the opacity of the button image while it is pressed.'>Pressed opacity</label>
+							<input type='number' step=0.01 id='alpha_mod_property'>
 						</div>
 					</div>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button id='overlay-create-button' class='important' onclick='addOverlay()'>Create overlay</button>
-					<button id='overlay-edit-button' class='danger hidden' onclick='editOverlay()'>Edit overlay</button>
-					<button onclick='hideOverlayEditor()'>Cancel</button>
-				</div>
+					<div class='field-pair js-additional-button-property' data-commands='analog_left analog_right'>
+						<div class='field'>
+							<label class='field-label' for='saturate_pct_property' title='Part of the stick range at which input reaches its maximum. Example: 0.65.'>Full input at</label>
+							<input type='number' step=0.01 id='saturate_pct_property'>
+						</div>
+						<span class='field-pair__by'></span>
+						<div class='field'>
+							<label class='field-label' for='movable_property' title='The stick image follows the finger.'>Follows finger</label>
+							<select id='movable_property'>
+								<option value=''>Default</option>
+								<option value='true'>Yes</option>
+								<option value='false'>No</option>
+							</select>
+						</div>
+					</div>
+					<div class='field'>
+						<label class='field-label' for='raw-button-properties'>Other properties, one <code>property = value</code> per line</label>
+						<textarea spellcheck='false' id='raw-button-properties' class='code notranslate' translate='no' rows='4'></textarea>
+					</div>
+				</details>
+			</div>
+		</aside>
+
+		<nav id='panel-tabs' aria-label='Panels'>
+			<button id='tab-outline' aria-pressed='false' onclick='togglePanelTab("outline")'><svg class='icon'><use href='#i-layers' /></svg>Buttons</button>
+			<button id='tab-inspector' aria-pressed='false' onclick='togglePanelTab("inspector")'><svg class='icon'><use href='#i-sliders' /></svg>Properties</button>
+		</nav>
+	</div>
+
+	<input type='file' accept='.cfg' id='load-config' class='visually-hidden' tabindex='-1' aria-label='Config file'>
+	<input type='file' accept='.png,.jpg,.jpeg' multiple id='load-button-images' class='visually-hidden' tabindex='-1' aria-label='Button images'>
+	<input type='file' accept='.png,.jpg,.jpeg' id='load-screenshot' class='visually-hidden' tabindex='-1' aria-label='Game screenshot'>
+
+	<div id='drop-hint' aria-hidden='true'>Drop a .cfg file or button images to open them</div>
+
+
+	<!-- Dialogs (hidden by default) -->
+	<div id='template-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog modal-dialog--wide' role='dialog' aria-modal='true' aria-labelledby='template-title'>
+			<header class='dialog-header'>
+				<h2 id='template-title'>Start from a template</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='showDialog("template-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<p>Each template has a landscape and a portrait overlay. It replaces the current gamepad, and you can undo that.</p>
+				<div id='template-grid'></div>
 			</div>
 		</div>
+	</div>
 
 
-		<div id='aspect-fixer-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Fix aspect ratio</span>
-					<span id='aspect-hint' class='hidden'>portrait</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideAspectFixer()'></button>
+	<div id='add-button-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog modal-dialog--wide' role='dialog' aria-modal='true' aria-labelledby='add-button-title'>
+			<header class='dialog-header'>
+				<h2 id='add-button-title'>Add a button</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='showDialog("add-button-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body' id='add-button-groups'></div>
+		</div>
+	</div>
+
+
+	<div id='overlay-create-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog' role='dialog' aria-modal='true' aria-labelledby='overlay-create-title'>
+			<header class='dialog-header'>
+				<h2 id='overlay-create-title'>Add an overlay</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='hideOverlayEditor()'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<div class='field'>
+					<span class='field-label'>Start with</span>
+					<div class='segmented'>
+						<label><input type='radio' name='overlay-start' id='overlay-start-blank' class='visually-hidden' autocomplete='off' checked onchange='updateNewOverlayFields()'><span>Empty</span></label>
+						<label><input type='radio' name='overlay-start' id='chk-duplicate-overlay' class='visually-hidden' autocomplete='off' onchange='updateNewOverlayFields()'><span>Copy of current</span></label>
+					</div>
 				</div>
-				<div class='modal-dialog__content-box'>
-					<div class='dialog-content-box__section'>
-						<span class='group-header'>Initial aspect ratio</span>
-						<br class='wide'>
+				<div class='field'>
+					<span class='field-label'>Orientation</span>
+					<div class='segmented'>
+						<label><input type='radio' name='overlay-orientation' id='overlay-orientation-landscape' class='visually-hidden' autocomplete='off' checked onchange='updateNewOverlayFields()'><span>Landscape</span></label>
+						<label><input type='radio' name='overlay-orientation' id='chk-portrait-overlay' class='visually-hidden' autocomplete='off' onchange='updateNewOverlayFields()'><span>Portrait</span></label>
+					</div>
+				</div>
+				<div class='field'>
+					<label class='field-label' for='overlay-name'>Name</label>
+					<input type='text' id='overlay-name' class='js-dialog__focus notranslate' translate='no' autocomplete='off' spellcheck='false'>
+					<p class='field-error hidden' id='overlay-name-error' role='alert'></p>
+				</div>
+				<details class='panel-details'>
+					<summary>Advanced properties</summary>
+					<textarea spellcheck='false' id='raw-overlay-properties' class='code notranslate' translate='no' rows='7' aria-label='Overlay properties'></textarea>
+				</details>
+			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' onclick='hideOverlayEditor()'>Cancel</button>
+				<button class='btn btn--primary' id='overlay-create-button' onclick='addOverlay()'>Add overlay</button>
+			</footer>
+		</div>
+	</div>
+
+
+	<div id='aspect-fixer-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog' role='dialog' aria-modal='true' aria-labelledby='aspect-title'>
+			<header class='dialog-header'>
+				<h2 id='aspect-title'>Fit buttons to a new aspect ratio</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='hideAspectFixer()'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<p>Reshapes this overlay so round buttons stay round on a different screen<span id='aspect-hint' class='hidden'> (portrait)</span>.</p>
+				<div class='field-pair'>
+					<div class='field'>
+						<label class='field-label' for='initial-aspect-width'>Made for: width</label>
 						<input type='number' step=0.00001 id='initial-aspect-width' value=16>
-						<span>:</span>
+					</div>
+					<span class='field-pair__by'>:</span>
+					<div class='field'>
+						<label class='field-label' for='initial-aspect-height'>height</label>
 						<input type='number' step=0.00001 id='initial-aspect-height' value=9>
 					</div>
-
-					<div class='dialog-content-box__section'>
-						<span class='group-header'>Target screen dimensions</span>
-						<br class='wide'>
+				</div>
+				<div class='field-pair'>
+					<div class='field'>
+						<label class='field-label' for='target-display-width'>New screen: width</label>
 						<input type='number' id='target-display-width'>
-						<span>:</span>
+					</div>
+					<span class='field-pair__by'>:</span>
+					<div class='field'>
+						<label class='field-label' for='target-display-height'>height</label>
 						<input type='number' id='target-display-height'>
 					</div>
-
-					<div class='dialog-content-box__section'>
-						<input type='checkbox' id='chk-keep-relative' autocomplete='off'>
-						<label for='chk-keep-relative'>Keep relative positions</label>
-						<button class='empty button--normal-size'
-							onclick='showDialog("aspect-hint-dialog", true)'>?</button>
+				</div>
+				<div class='field'>
+					<span class='field-label'>Button positions</span>
+					<div class='segmented'>
+						<label><input type='radio' name='aspect-mode' id='aspect-mode-edges' class='visually-hidden' autocomplete='off' checked><span>Keep near edges</span></label>
+						<label><input type='radio' name='aspect-mode' id='chk-keep-relative' class='visually-hidden' autocomplete='off'><span>Keep relative</span></label>
 					</div>
 				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important js-dialog__focus' onclick='fixAspect()'>Fix</button>
-					<button onclick='hideAspectFixer()'>Cancel</button>
+				<figure id='aspect-figure'>
+					<figcaption>Keep near edges</figcaption>
+					<img id='aspect-hint-image' src='aspect-ratio-hint.svg' alt='Comparison of the two ways to reposition buttons'>
+					<figcaption>Keep relative</figcaption>
+				</figure>
+			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' onclick='hideAspectFixer()'>Cancel</button>
+				<button class='btn btn--primary js-dialog__focus' onclick='fixAspect()'>Fit buttons</button>
+			</footer>
+		</div>
+	</div>
+
+
+	<div id='image-picker-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog modal-dialog--wide' role='dialog' aria-modal='true' aria-labelledby='image-picker-title'>
+			<header class='dialog-header'>
+				<h2 id='image-picker-title'>Choose an image</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='showDialog("image-picker-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<div class='field-inline'>
+					<input type='search' id='image-picker-filter' class='js-dialog__focus' placeholder='Search images' aria-label='Search images' autocomplete='off'>
+					<button class='btn' onclick='pickFile("load-button-images")'><svg class='icon icon--small'><use href='#i-image' /></svg>Add your own…</button>
 				</div>
+				<div id='image-picker-grid' class='notranslate' translate='no'></div>
 			</div>
 		</div>
+	</div>
 
 
-		<div id='screen-size-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Set screen size</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideScreenSizeDialog()'></button>
+	<div id='export-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog' role='dialog' aria-modal='true' aria-labelledby='export-title'>
+			<header class='dialog-header'>
+				<h2 id='export-title'>Export</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='hideExportDialog()'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<div class='field'>
+					<label class='field-label' for='export-filename'>File name</label>
+					<input type='text' id='export-filename' class='js-dialog__focus notranslate' translate='no' autocomplete='off' spellcheck='false'>
 				</div>
-				<div class='modal-dialog__content-box'>
-					<div class='dialog-content-box__section'>
-						<span class='group-header'>Screen dimensions</span>
-						<br class='wide'>
-						<select id='device-preset' aria-label='Device preset' onchange='applyDevicePreset()'>
-							<option value=''>Device preset</option>
-							<option value='1920x1080'>Phone 16:9 (1920 x 1080)</option>
-							<option value='2340x1080'>Phone 19.5:9 (2340 x 1080)</option>
-							<option value='2400x1080'>Phone 20:9 (2400 x 1080)</option>
-							<option value='2560x1440'>Phone QHD (2560 x 1440)</option>
-							<option value='2048x1536'>Tablet 4:3 (2048 x 1536)</option>
-							<option value='2560x1600'>Tablet 16:10 (2560 x 1600)</option>
-							<option value='1280x800'>Steam Deck (1280 x 800)</option>
-							<option value='1280x720'>Nintendo Switch handheld (1280 x 720)</option>
-							<option value='640x480'>Handheld 4:3 (640 x 480)</option>
-						</select>
-						<br class='wide'>
-						<input type='number' id='display-width' step=0.00001 class='js-dialog__focus'>
-						<span>x</span>
-						<input type='number' id='display-height' step=0.00001>
-						<br class='wide'>
-						<input type='checkbox' id='chk-rescale-to-fit' autocomplete='off'>
-						<label for='chk-rescale-to-fit'>Rescale to fit editor window</label>
-					</div>
+				<div id='check-summary' role='status'></div>
+				<ul id='check-list' class='notranslate' translate='no'></ul>
+				<details class='panel-details hidden' id='check-notes-box'>
+					<summary id='check-notes-summary'></summary>
+					<ul id='check-notes' class='notranslate' translate='no'></ul>
+				</details>
+				<p class='field-note'>RetroArch needs the config and its images in the same folder. On most Android devices, keep them in internal storage. The ZIP has everything; unpack it there.</p>
+			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' id='export-button' onclick='exportConfig()'>Config only</button>
+				<button class='btn btn--primary' id='export-zip-button' onclick='exportZip()'><svg class='icon icon--small'><use href='#i-download' /></svg>Download ZIP</button>
+			</footer>
+		</div>
+	</div>
 
-					<div class='dialog-content-box__section'>
-						<button class='empty expander button--normal-size' id='screenshot-settings-expander'
-							onclick='toggleScreenshotSettings()'>Screenshot area</button>
-						<div id='screenshot-area-settings' class='dialog-content-box__expandable hidden'>
-							<input type='number' id='screenshot-width' step=0.00001>
-							<span>x</span>
-							<input type='number' id='screenshot-height' step=0.00001>
-							<br class='wide'>
-							<input type='radio' onchange='onScreenshotModeChange()' id='radio-screenshot-fit'
-								name='screenshot-mode'>
-							<label for='radio-screenshot-fit'>Fit screen</label>
-							<br class='narrow'>
-							<input type='radio' onchange='onScreenshotModeChange()' id='radio-screenshot-set'
-								name='screenshot-mode'>
-							<label for='radio-screenshot-set'>Exact size</label>
-							<br class='narrow'>
-							<input type='radio' onchange='onScreenshotModeChange()' id='radio-screenshot-match'
-								name='screenshot-mode'>
-							<label for='radio-screenshot-match'>Screenshot image size</label>
-						</div>
-					</div>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important' onclick='applyScreenDimensions()'>Set size</button>
-					<button onclick='hideScreenSizeDialog()'>Cancel</button>
-				</div>
+
+	<div id='config-text-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog modal-dialog--wide' role='dialog' aria-modal='true' aria-labelledby='config-text-title'>
+			<header class='dialog-header'>
+				<h2 id='config-text-title'>Edit config as text</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='showDialog("config-text-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<textarea spellcheck='false' id='config-text' class='js-dialog__focus code notranslate' translate='no' aria-label='Config text'></textarea>
+			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' onclick='showDialog("config-text-dialog", false)'>Cancel</button>
+				<button class='btn btn--primary' onclick='applyConfigText()'>Apply</button>
+			</footer>
+		</div>
+	</div>
+
+
+	<div id='help-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog' role='dialog' aria-modal='true' aria-labelledby='help-title'>
+			<header class='dialog-header'>
+				<h2 id='help-title'>Help</h2>
+				<button class='btn btn--ghost btn--icon js-dialog__focus' aria-label='Close' onclick='showDialog("help-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body'>
+				<p>A RetroArch overlay is a <code>.cfg</code> text file plus the images it refers to. The config lists each button's input, touch area and image.</p>
+				<h3>Shortcuts</h3>
+				<dl id='shortcut-list'>
+					<dt><kbd>Click</kbd></dt><dd>Select a button. Click again to reach one underneath.</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>Click</kbd></dt><dd>Add to the selection</dd>
+					<dt><kbd>Drag</kbd></dt><dd>Move a button or select an area. On touch, use two fingers to select an area.</dd>
+					<dt><kbd>Shift</kbd> + <kbd>Drag</kbd> handle</dt><dd>Resize and keep proportions</dd>
+					<dt><kbd>Arrows</kbd></dt><dd>Nudge the selection; hold <kbd>Shift</kbd> for larger steps</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Select all buttons</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>D</kbd></dt><dd>Duplicate</dd>
+					<dt><kbd>Del</kbd></dt><dd>Delete</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Y</kbd></dt><dd>Undo, redo</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Export</dd>
+					<dt><kbd>Space</kbd> + <kbd>Drag</kbd></dt><dd>Pan the screen</dd>
+					<dt><kbd>Ctrl</kbd> + <kbd>Wheel</kbd></dt><dd>Zoom; <kbd>+</kbd> <kbd>−</kbd> also zoom and <kbd>0</kbd> fits</dd>
+					<dt><kbd>Esc</kbd></dt><dd>Close a dialog or clear the selection</dd>
+				</dl>
+				<h3>Links</h3>
+				<ul id='help-links'>
+					<li><a href='https://docs.libretro.com/development/retroarch/input/overlay/' target='_blank' rel='noopener'>Overlay documentation</a></li>
+					<li><a href='https://github.com/Valent-in/retropad-editor/releases/download/v0.6/overlay-images.zip'>Download the default image pack</a></li>
+					<li><a href='https://forums.libretro.com/t/retropad-editor-create-and-edit-onscreen-gamepads' target='_blank' rel='noopener'>Forum thread</a></li>
+					<li><a href='https://github.com/valent-in/retropad-editor' target='_blank' rel='noopener'>Source on GitHub</a></li>
+				</ul>
+				<p class='field-note'>RetroPad Editor v0.9.9</p>
 			</div>
 		</div>
+	</div>
 
 
-		<div id='import-export-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Files</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideFileDialog()'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<table>
-						<tr>
-							<td>
-								<label for='load-config'>Import config</label>
-							</td>
-							<td>
-								<span class='input_file'>
-									<input type='file' accept='.cfg' id='load-config' class='js-dialog__focus'>
-									<label id='load-config-filename' for='load-config'></label>
-								</span>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<label for='load-button-images'>Import images</label>
-							</td>
-							<td>
-								<span class='input_file'>
-									<input type='file' accept='.png,.jpg,.jpeg' multiple id='load-button-images'>
-									<label id='load-button-images-filename' for='load-button-images'></label>
-								</span>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<input type='checkbox' id='chk-show-screenshot'>
-								<label for='chk-show-screenshot'>Game screenshot</label>
-							</td>
-							<td>
-								<span class='input_file'>
-									<input type='file' accept='.png,.jpg,.jpeg' id='load-screenshot'>
-									<label id='load-screenshot-filename' for='load-screenshot'></label>
-								</span>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<label for='export-filename'>Export file name</label>
-							</td>
-							<td>
-								<input type='text' id='export-filename' autocomplete='off' spellcheck='false'>
-							</td>
-						</tr>
-
-						<tr>
-							<td colspan='2'>
-								<span id='download-help'>Config file and image files must be stored in same
-									folder.</span>
-							</td>
-						</tr>
-
-						<tr>
-							<td>
-								<button class='empty' id='export-button' onclick='requestExport(exportConfig)'>Export config</button>
-								<button class='empty' id='export-zip-button' title='Config and all images it uses'
-									onclick='requestExport(exportZip)'>Export ZIP</button>
-								<button class='empty button--normal-size' id='check-config-button' onclick='showConfigCheck()'>Check</button>
-								<button class="empty button--normal-size"
-									onclick='showDialog("export-hint-dialog", true)'>?</button>
-							</td>
-							<td>
-								<a
-									href='https://github.com/Valent-in/retropad-editor/releases/download/v0.6/overlay-images.zip'>
-									Image pack
-								</a>
-							</td>
-						</tr>
-					</table>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button onclick='hideFileDialog()'>Close</button>
-				</div>
+	<div id='session-restore-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog modal-dialog--narrow' role='alertdialog' aria-modal='true' aria-labelledby='session-title'>
+			<div class='dialog-body'>
+				<h2 id='session-title'>Continue where you left off?</h2>
+				<p>You have unsaved work from your last visit.</p>
 			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' onclick='discardSession()'>Discard it</button>
+				<button class='btn btn--primary js-dialog__focus' id='session-restore-button' onclick='restoreSession()'>Continue</button>
+			</footer>
 		</div>
-
-		<div id='export-hint-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Config hint</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("export-hint-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<p style='padding-bottom:8px'>
-						RetroArch overlays are built from a collection of images and a text configuration file.
-					</p>
-					<p>
-						The config file (.cfg) describes:
-					</p>
-					<ul style='padding-left:2rem;padding-bottom:8px'>
-						<li>The hitbox for each input event, i.e. "size" of the button.</li>
-						<li>Which images (.png) should be shown over the input elements.</li>
-					</ul>
-					<p style='padding-bottom:8px'>More information:
-						<a href='https://docs.libretro.com/development/retroarch/input/overlay/' target='_blank'
-							rel='noopener'>Libretro docs</a>.
-					</p>
-					<p style='padding-bottom:8px'>To use default "flat" image set:
-						<a
-							href='https://github.com/Valent-in/retropad-editor/releases/download/v0.6/overlay-images.zip'>
-							download</a> and unpack archive, place config in folder with images.
-					</p>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("export-hint-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='config-text-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Config text</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("config-text-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<textarea spellcheck='false' id='config-text' class='js-dialog__focus notranslate' translate='no' aria-label='Config text'></textarea>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important' onclick='applyConfigText()'>Apply</button>
-					<button onclick='showDialog("config-text-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='template-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Starter templates</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("template-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<label for='template-select'>Gamepad</label>
-					<select id='template-select' class='js-dialog__focus'></select>
-					<br class='wide'>
-					<span class='small-warning'>Replaces current gamepad. You can undo this.</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important' onclick='loadTemplate()'>Load</button>
-					<button onclick='showDialog("template-dialog", false)'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='check-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Config check</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("check-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<ul id='check-list' class='notranslate' translate='no'></ul>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='danger hidden' id='check-export-anyway' onclick='exportAnyway()'>Export anyway</button>
-					<button class='js-dialog__focus' onclick='showDialog("check-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='image-picker-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Choose image</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("image-picker-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<input type='text' id='image-picker-filter' class='js-dialog__focus' placeholder='Filter' aria-label='Filter images' autocomplete='off'>
-					<div id='image-picker-grid' class='notranslate' translate='no'></div>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button onclick='showDialog("image-picker-dialog", false)'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='reset-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Do you want to reset?<br>All unsaved changes will be lost!</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='danger js-dialog__focus' onclick='resetPad()'>Reset</button>
-					<button onclick='showDialog("reset-dialog", false)'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='session-restore-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Unsaved work from your last visit was found.<br>Do you want to restore it?</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='important js-dialog__focus' onclick='restoreSession()'>Restore</button>
-					<button onclick='discardSession()'>Start new</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='overlay-delete-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Delete current overlay?</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='danger js-dialog__focus' onclick='delCurrentOverlay()'>Delete</button>
-					<button onclick='showDialog("overlay-delete-dialog", false)'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='button-delete-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Delete selection?</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='danger js-dialog__focus' onclick='delCurrentButton()'>Delete</button>
-					<button onclick='showDialog("button-delete-dialog", false)'>Cancel</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='name-exist-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Overlay with this name already exists.</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("name-exist-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='name-empty-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Enter overlay name.</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("name-empty-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='name-invalid-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__content-box'>
-					<span>Overlay name can not contain " or = characters.</span>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("name-invalid-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='aspect-hint-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Aspect ratio hint</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("aspect-hint-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<div class='aspect-hint-text-container'>
-						<span>Default aspect ratio fix</span>
-					</div>
-					<img id='aspect-hint-image' src='aspect-ratio-hint.svg' alt='Comparison of default aspect ratio fix and keeping relative positions'>
-					<div class='aspect-hint-text-container'>
-						<span>Keep relative positions</span>
-					</div>
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("aspect-hint-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
-		<div id='colors-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog' role='dialog' aria-modal='true'>
-				<div class='modal-dialog__header-box'>
-					<span>Color theme</span>
-					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("colors-dialog", false)'></button>
-				</div>
-				<div class='modal-dialog__content-box'>
-					<input type=radio name='color-scheme-radio' id='color-scheme-0' autocomplete='off' checked
-						onchange='setColorScheme(0)'>
-					<label for='color-scheme-0' id='color-scheme-0-label'>Color theme 0</label>
-					<br class='wide'>
-
-					<input type=radio name='color-scheme-radio' id='color-scheme-1' autocomplete='off'
-						onchange='setColorScheme(1)'>
-					<label for='color-scheme-1' id='color-scheme-1-label'>Color theme 1</label>
-					<br class='wide'>
-
-					<input type=radio name='color-scheme-radio' id='color-scheme-2' autocomplete='off'
-						onchange='setColorScheme(2)'>
-					<label for='color-scheme-2' id='color-scheme-2-label'>Color theme 2</label>
-					<br class='wide'>
-
-					<label for='app-theme'>App appearance</label>
-					<select id='app-theme' onchange='setAppTheme(this.value)'>
-						<option value='auto'>System</option>
-						<option value='light'>Light</option>
-						<option value='dark'>Dark</option>
-					</select>
-
-				</div>
-				<div class='modal-dialog__footer-box'>
-					<button class='js-dialog__focus' onclick='showDialog("colors-dialog", false)'>Close</button>
-				</div>
-			</div>
-		</div>
-
 	</div>
 </body>
 

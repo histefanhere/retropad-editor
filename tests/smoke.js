@@ -75,10 +75,8 @@ async function main() {
 
 	check('default pad renders', await page.locator('.rect').count() == 21);
 
-	await page.click('text=Import • Export');
 	await page.setInputFiles('#load-config', configFile);
 	await page.waitForTimeout(150);
-	await page.keyboard.press('Escape');
 	check('config imports', await page.locator('.rect').count() == 3);
 	const imported = await config();
 	const box = await page.locator('#screenpad').boundingBox();
@@ -145,8 +143,89 @@ async function main() {
 	check('touch on unselected button does not move it', near((await desc(2)).x, before.x), (await desc(2)).x);
 	await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
 
+	// Inspector edits apply at once and can be undone
+	await button('b').click();
+	await page.selectOption('#command-select', 'start');
+	check('input change applies', (await config()).includes('overlay0_desc1 = "start,'));
+	check('selection survives edit', await page.locator('.rect.selected').count() == 1);
+	await page.click('label:has(#shape-radial)');
+	check('shape change applies', /overlay0_desc1 = "start,[^,]+,[^,]+,radial/.test(await config()));
+	await page.click('#image-picker-button');
+	await page.fill('#image-picker-filter', 'rgui');
+	await page.click('#image-picker-grid .tile');
+	check('image change applies', (await config()).includes('overlay0_desc1_overlay = rgui.png'));
+	await page.click('#undo-button');
+	await page.click('#undo-button');
+	await page.click('#undo-button');
+	check('edits can be undone', await config() == imported, await config());
+
+	// Adding and deleting
+	await page.click('#button-add-button');
+	await page.click('#add-button-groups .tile:has-text("Open menu")');
+	check('button is added and selected', await page.locator('.rect.selected:has-text("menu_toggle")').count() == 1);
+	check('inspector shows new button', await page.inputValue('#command-select') == 'menu_toggle');
+	await page.keyboard.press('Delete');
+	check('delete needs no confirmation', await page.locator('.rect').count() == 3);
+	await page.click('.toast button:has-text("Undo")');
+	check('toast undoes delete', await page.locator('.rect').count() == 4);
+	await page.click('#undo-button');
+	check('add can be undone', await config() == imported);
+
+	// Group selection: dragging over a single button selects it
+	await page.keyboard.press('Escape');
+	check('inspector shows overlay without selection', await page.locator('#inspector').getAttribute('data-mode') == 'overlay');
+	const area = await button('c').boundingBox();
+	await page.mouse.move(area.x - 12, area.y - 12);
+	await page.mouse.down();
+	await page.mouse.move(area.x + area.width + 8, area.y + area.height + 8, { steps: 3 });
+	await page.mouse.up();
+	check('area selection of one button edits it', await page.locator('#inspector').getAttribute('data-mode') == 'single');
+	await page.keyboard.press('Escape');
+	await page.keyboard.press('Control+a');
+	check('select all shows group tools', await page.locator('#inspector').getAttribute('data-mode') == 'multi');
+	await page.keyboard.press('Escape');
+
+	// Overlays
+	await page.click('#overlay-list li:nth-child(2) button');
+	check('overlay switches from list', await page.locator('.rect').count() == 1);
+	await page.fill('#overlay-current-name', 'renamed');
+	await page.locator('#overlay-current-name').blur();
+	check('overlay renames in place', (await config()).includes('overlay1_name = "renamed"'));
+	await page.click('#overlay-add-button');
+	await page.fill('#overlay-name', 'renamed');
+	await page.click('#overlay-create-button');
+	check('duplicate name shows error', await page.locator('#overlay-name-error').isVisible());
+	await page.fill('#overlay-name', 'third');
+	await page.click('#overlay-create-button');
+	check('overlay is added', await page.locator('#overlay-list li').count() == 3);
+	check('new overlay is current', await page.locator('.row-empty').isVisible());
+	await page.click('#undo-button');
+	await page.click('#undo-button');
+	await page.click('#overlay-list li:nth-child(1) button');
+	check('overlay edits can be undone', await config() == imported);
+
+	// Zoom and test mode
+	await page.click('#zoom-in');
+	const zoomed = await page.locator('#screenpad').boundingBox();
+	check('zoom enlarges screen', zoomed.width > box.width);
+	await page.click('#zoom-fit');
+	const stage = await page.locator('#gamepad-container').boundingBox();
+	const fitted = await page.locator('#screenpad').boundingBox();
+	check('fit stays inside stage', fitted.width <= stage.width && fitted.height <= stage.height);
+	check('fit has no scrolling', await page.evaluate(() => { let c = document.getElementById('gamepad-container'); return c.scrollWidth <= c.clientWidth && c.scrollHeight <= c.clientHeight; }));
+
+	await page.click('#test-toggle');
+	check('test mode shows banner', await page.locator('#test-banner').isVisible());
+	await page.mouse.move(fitted.x + fitted.width * 0.2, fitted.y + fitted.height * 0.3);
+	await page.mouse.down();
+	check('test mode reports input', await page.locator('#test-readout').textContent() == 'a');
+	await page.mouse.up();
+	await page.keyboard.press('Escape');
+	check('Esc leaves test mode', await page.locator('#test-banner').isHidden());
+
 	// Export
-	await page.click('text=Import • Export');
+	await page.click('#export-open-button');
+	check('export shows check result', await page.locator('#check-summary').textContent() == 'Ready for RetroArch');
 	const [cfg] = await Promise.all([page.waitForEvent('download'), page.click('#export-button')]);
 	check('config downloads', cfg.suggestedFilename() == 'new-pad.cfg', cfg.suggestedFilename());
 	check('download matches config', fs.readFileSync(await cfg.path(), 'utf8') == await config());
@@ -164,9 +243,26 @@ async function main() {
 	second.on('dialog', dialog => dialog.accept());
 	await second.goto(url);
 	await second.waitForSelector('#session-restore-dialog:not(.hidden)');
-	await second.click('#session-restore-dialog button.important');
+	await second.click('#session-restore-button');
 	check('autosave restores work', await second.evaluate(() => conf.getConfigString()) == edited);
 	await second.close();
+
+	// Phone layout
+	await page.setViewportSize({ width: 390, height: 780 });
+	await page.waitForTimeout(100);
+	check('phone: panels start closed', await page.locator('#panel-outline').isHidden() && await page.locator('#inspector').isHidden());
+	await page.click('#tab-inspector');
+	check('phone: properties open', await page.locator('#inspector').isVisible());
+	const phoneScreen = await page.locator('#screenpad').boundingBox();
+	check('phone: screen fits width', phoneScreen.x >= 0 && phoneScreen.x + phoneScreen.width <= 390, phoneScreen.width);
+	check('phone: screen is usable size', phoneScreen.width > 300, phoneScreen.width);
+	await page.click('#tab-outline');
+	check('phone: one panel at a time', await page.locator('#panel-outline').isVisible() && await page.locator('#inspector').isHidden());
+	await page.setViewportSize({ width: 780, height: 380 });
+	await page.waitForTimeout(100);
+	const sideScreen = await page.locator('#screenpad').boundingBox();
+	check('phone landscape: screen beside panel', sideScreen.x + sideScreen.width <= 480 && sideScreen.width > 200, sideScreen.width);
+	check('phone: no sideways overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 
 	check('no page errors', errors.length == 0, errors.join(' | '));
 
