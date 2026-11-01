@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang='en'>
 
 <head>
-	<title>RetroPad Editor</title>
-	<link rel='shortcut icon' type='image/svg' href='img/retroarch-icon.svg'>
 	<meta charset='UTF-8'>
+	<title>RetroPad Editor</title>
+	<link rel='icon' type='image/svg+xml' href='img/retroarch-icon.svg'>
 	<meta name='viewport' content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1'>
 	<meta name='description' content='Edit onscreen gamepads for RetroArch'>
 
@@ -24,7 +24,7 @@
 		<div id='header'>
 			<button class='important' onclick='showFileDialog()'>Import • Export</button>
 			<button class='danger button--normal-size' onclick='showDialog("reset-dialog", true)'>Reset</button>
-			<span id='header__caption'><img src='img/retroarch-icon.svg'>RetroPad Editor</span>
+			<span id='header__caption'><img src='img/retroarch-icon.svg' alt=''>RetroPad Editor</span>
 		</div>
 
 		<div id='workarea-container'>
@@ -94,28 +94,28 @@
 				<div id='editor'>
 					<div>
 						<span>X</span>
-						<input type='range' max=1 step=0.00001 id='x-range'>
-						<input type='number' step=any id='x-number'>
+						<input type='range' max=1 step=0.00001 id='x-range' aria-label='X position'>
+						<input type='number' step=any id='x-number' aria-label='X position'>
 						<button onclick='flipXcoord()'>Flip</button>
 					</div>
 
 					<div>
 						<span>Y</span>
-						<input type='range' max=1 step=0.00001 id='y-range'>
-						<input type='number' step=any id='y-number'>
+						<input type='range' max=1 step=0.00001 id='y-range' aria-label='Y position'>
+						<input type='number' step=any id='y-number' aria-label='Y position'>
 					</div>
 
 					<div>
 						<span>W</span>
-						<input type='range' max=1 step=0.00001 id='w-range'>
-						<input type='number' step=any id='w-number'>
+						<input type='range' max=1 step=0.00001 id='w-range' aria-label='Width'>
+						<input type='number' step=any id='w-number' aria-label='Width'>
 						<button id='norm-width' onclick='normalizeWidth()'>Quad</button>
 					</div>
 
 					<div>
 						<span>H</span>
-						<input type='range' max=1 step=0.00001 id='h-range'>
-						<input type='number' step=any id='h-number'>
+						<input type='range' max=1 step=0.00001 id='h-range' aria-label='Height'>
+						<input type='number' step=any id='h-number' aria-label='Height'>
 						<button id='norm-height' onclick='normalizeHeight()'>Quad</button>
 					</div>
 				</div>
@@ -134,10 +134,10 @@
 
 		<!-- Dialogs (hidden by default) -->
 		<div id='button-create-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Button properties</span>
-					<button class='close-button danger' onclick='hideButtonEditor()'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideButtonEditor()'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<table id='button-properties-table'>
@@ -148,7 +148,7 @@
 
 							<td>
 								<input type='text' id='command-name' class='js-dialog__focus'>
-								<select class='miniselect notranslate' translate='no' id='command-select'></select>
+								<select class='miniselect notranslate' translate='no' id='command-select' aria-label='Command list'></select>
 							</td>
 						</tr>
 
@@ -159,7 +159,7 @@
 
 							<td>
 								<input type='text' id='image-name'>
-								<select class='miniselect notranslate' translate='no' id='image-select'></select>
+								<select class='miniselect notranslate' translate='no' id='image-select' aria-label='Image list'></select>
 							</td>
 						</tr>
 
@@ -264,14 +264,14 @@
 
 
 		<div id='overlay-create-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Create/Edit overlay</span>
-					<button class='close-button danger' onclick='hideOverlayEditor()'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideOverlayEditor()'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<div class='dialog-content-box__section'>
-						<label>Overlay name</label>
+						<label for='overlay-name'>Overlay name</label>
 						<input type='text' id='overlay-name' class='js-dialog__focus' autocomplete='off'>
 						<br class='wide'>
 						<input type='checkbox' autocomplete='off' id='chk-edit-overlay'
@@ -306,11 +306,11 @@
 
 
 		<div id='aspect-fixer-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Fix aspect ratio</span>
 					<span id='aspect-hint' class='hidden'>portrait</span>
-					<button class='close-button danger' onclick='hideAspectFixer()'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideAspectFixer()'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<div class='dialog-content-box__section'>
@@ -345,10 +345,10 @@
 
 
 		<div id='screen-size-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Set screen size</span>
-					<button class='close-button danger' onclick='hideScreenSizeDialog()'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideScreenSizeDialog()'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<div class='dialog-content-box__section'>
@@ -393,16 +393,16 @@
 
 
 		<div id='import-export-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Files</span>
-					<button class='close-button danger' onclick='hideFileDialog()'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='hideFileDialog()'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<table>
 						<tr>
 							<td>
-								<span>Import config</span>
+								<label for='load-config'>Import config</label>
 							</td>
 							<td>
 								<span class='input_file'>
@@ -414,11 +414,11 @@
 
 						<tr>
 							<td>
-								<span>Import images</span>
+								<label for='load-button-images'>Import images</label>
 							</td>
 							<td>
 								<span class='input_file'>
-									<input type='file' accept='.png,.jpg' multiple id='load-button-images'>
+									<input type='file' accept='.png,.jpg,.jpeg' multiple id='load-button-images'>
 									<label id='load-button-images-filename' for='load-button-images'></label>
 								</span>
 							</td>
@@ -431,7 +431,7 @@
 							</td>
 							<td>
 								<span class='input_file'>
-									<input type='file' accept='.png,.jpg' id='load-screenshot'>
+									<input type='file' accept='.png,.jpg,.jpeg' id='load-screenshot'>
 									<label id='load-screenshot-filename' for='load-screenshot'></label>
 								</span>
 							</td>
@@ -446,8 +446,7 @@
 
 						<tr>
 							<td>
-								<button class='empty' id='export-button' onclick='createDownloadLink()'><a
-										id='export-link' download='new-retropad.cfg' href=''>Export config</a></button>
+								<button class='empty' id='export-button' onclick='exportConfig()'>Export config</button>
 								<button class="empty button--normal-size"
 									onclick='showDialog("export-hint-dialog", true)'>?</button>
 							</td>
@@ -467,10 +466,10 @@
 		</div>
 
 		<div id='export-hint-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Config hint</span>
-					<button class='close-button danger' onclick='showDialog("export-hint-dialog", false)'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("export-hint-dialog", false)'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<p style='padding-bottom:8px'>
@@ -500,9 +499,9 @@
 		</div>
 
 		<div id='reset-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__content-box'>
-					<span>Do you want to reset?<br>All unsaved editions will be lost!</span>
+					<span>Do you want to reset?<br>All unsaved changes will be lost!</span>
 				</div>
 				<div class='modal-dialog__footer-box'>
 					<button class='danger js-dialog__focus' onclick='resetPad()'>Reset</button>
@@ -512,7 +511,7 @@
 		</div>
 
 		<div id='overlay-delete-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__content-box'>
 					<span>Delete current overlay?</span>
 				</div>
@@ -524,7 +523,7 @@
 		</div>
 
 		<div id='button-delete-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__content-box'>
 					<span>Delete selected button?</span>
 				</div>
@@ -536,9 +535,9 @@
 		</div>
 
 		<div id='name-exist-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__content-box'>
-					<span>Overlay with this name already exist.</span>
+					<span>Overlay with this name already exists.</span>
 				</div>
 				<div class='modal-dialog__footer-box'>
 					<button class='js-dialog__focus' onclick='showDialog("name-exist-dialog", false)'>Close</button>
@@ -547,7 +546,7 @@
 		</div>
 
 		<div id='name-empty-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__content-box'>
 					<span>Enter overlay name.</span>
 				</div>
@@ -558,16 +557,16 @@
 		</div>
 
 		<div id='aspect-hint-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Aspect ratio hint</span>
-					<button class='close-button danger' onclick='showDialog("aspect-hint-dialog", false)'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("aspect-hint-dialog", false)'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<div class='aspect-hint-text-container'>
 						<span>Default aspect ratio fix</span>
 					</div>
-					<img id='aspect-hint-image' src='aspect-ratio-hint.svg'>
+					<img id='aspect-hint-image' src='aspect-ratio-hint.svg' alt='Comparison of default aspect ratio fix and keeping relative positions'>
 					<div class='aspect-hint-text-container'>
 						<span>Keep relative positions</span>
 					</div>
@@ -579,10 +578,10 @@
 		</div>
 
 		<div id='colors-dialog' class='dialog-container hidden'>
-			<div class='modal-dialog'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
 				<div class='modal-dialog__header-box'>
 					<span>Color theme</span>
-					<button class='close-button danger' onclick='showDialog("colors-dialog", false)'></button>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("colors-dialog", false)'></button>
 				</div>
 				<div class='modal-dialog__content-box'>
 					<input type=radio name='color-scheme-radio' id='color-scheme-0' autocomplete='off' checked

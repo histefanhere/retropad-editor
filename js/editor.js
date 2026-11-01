@@ -9,6 +9,7 @@ const autoScaleParams = 'auto_x_separation = true\n'; //auto_y_separation = ?
 const manualScaleParams = 'block_x_separation = false\nblock_y_separation = false';
 
 let importedFilename = 'retropad.cfg';
+let savedConfigStr;
 let currentRect;
 
 let screen = {
@@ -66,6 +67,10 @@ renderConfig(configStr);
 	});
 
 	text.addEventListener('input', (e) => {
+		// field is empty while retyping value (or contains invalid number)
+		if (e.target.value === '')
+			return;
+
 		applyButtonParam(elem, e.target.value);
 		range.value = e.target.value;
 	});
@@ -85,6 +90,9 @@ document.getElementById('load-config').addEventListener('change', loadConfigFrom
 document.getElementById('load-button-images').addEventListener('change', loadImageFiles);
 document.getElementById('load-screenshot').addEventListener('change', loadScreenshotFile);
 document.getElementById('chk-show-screenshot').addEventListener('change', toggleScreenshot);
+
+document.addEventListener('keydown', closeTopDialogOnEscape);
+window.addEventListener('beforeunload', warnAboutUnsavedChanges);
 
 
 function applyButtonParam(section, sValue) {
@@ -109,7 +117,7 @@ function createPadView() {
 		let r = rects[i];
 		let b = createRect(background, r.command, r.x, r.y, r.w, r.h, r.pct);
 
-		if (r.img)
+		if (images[r.img])
 			b.style['background-image'] = 'url(' + images[r.img] + ')';
 
 		if (r.s == 'radial')
@@ -147,7 +155,7 @@ function createPadBackground() {
 	backgroundDiv.classList.add('screenpad-background');
 
 	let bg = conf.getCurrentOverlayBackground();
-	if (bg.image) {
+	if (images[bg.image]) {
 		backgroundDiv.style['background-image'] = 'url(' + images[bg.image] + ')';
 	}
 
@@ -344,17 +352,19 @@ function loadConfigFromFile(e) {
 	if (!file)
 		return;
 
-	importedFilename = file.name;
-
 	let reader = new FileReader();
 	reader.onload = function (ev) {
-		configStr = ev.target.result;
 		try {
 			renderConfig(ev.target.result);
+			configStr = ev.target.result;
+			importedFilename = file.name;
 		} catch {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
-			alert(errMsg + '\nReload page and try again.')
+			alert(errMsg + '\nPrevious config is restored.');
+			renderConfig(configStr);
+			e.target.value = '';
+			document.getElementById('load-config-filename').textContent = '';
 		}
 	};
 	reader.readAsText(file);
@@ -370,6 +380,7 @@ function renderConfig(str) {
 
 		setScreenDimensions();
 		redrawPad();
+		savedConfigStr = conf.getConfigString();
 	},
 		images);
 }
@@ -382,9 +393,7 @@ function loadImageFiles(e) {
 	for (let i = 0; i < e.target.files.length; i++) {
 		let file = e.target.files[i];
 
-		let ext = e.target.files[i].name.substr(-4);
-
-		if (!file || (ext != '.png' && ext != '.jpg'))
+		if (!file || !/\.(png|jpe?g)$/i.test(file.name))
 			continue;
 
 		imgCounter++;
@@ -415,6 +424,8 @@ function loadImageFiles(e) {
 
 function loadScreenshotFile(e) {
 	let file = e.target.files[0];
+	if (!file)
+		return;
 
 	let name = file.name;
 	console.log(name);
@@ -589,8 +600,8 @@ function setScreenDimensions(width, height, screenshotWidth, screenshotHeight) {
 
 
 function applyScreenDimensions() {
-	let w = document.getElementById('display-width').value;
-	let h = document.getElementById('display-height').value;
+	let w = document.getElementById('display-width').value || screen.longSide;
+	let h = document.getElementById('display-height').value || screen.shortSide;
 	let sw = document.getElementById('screenshot-width').value;
 	let sh = document.getElementById('screenshot-height').value;
 
@@ -614,11 +625,16 @@ function applyScreenDimensions() {
 }
 
 
-function createDownloadLink() {
-	let file = new Blob([conf.getConfigString()], { type: 'text/cfg' });
-	let a = document.getElementById('export-link');
+function exportConfig() {
+	let configText = conf.getConfigString();
+	let file = new Blob([configText], { type: 'text/plain' });
+	let a = document.createElement('A');
 	a.href = URL.createObjectURL(file);
-	a.download = 'new-' + importedFilename;
+	a.download = 'new-' + importedFilename.replace(/^new-/, '');
+	a.click();
+	setTimeout(() => URL.revokeObjectURL(a.href), 0);
+
+	savedConfigStr = configText;
 }
 
 
@@ -715,7 +731,7 @@ function fillImageSelector() {
 	listAll = listAll.concat(defImages);
 
 	for (let name of listAll) {
-		o = document.createElement('OPTION');
+		let o = document.createElement('OPTION');
 		o.appendChild(document.createTextNode(name));
 		selector.appendChild(o);
 	}
@@ -974,6 +990,26 @@ function calculateScreenSizeToFit(width, height) {
 }
 
 
+function closeTopDialogOnEscape(event) {
+	if (event.key != 'Escape')
+		return;
+
+	// nested dialogs are placed after their parents in markup
+	let dialogs = document.querySelectorAll('.dialog-container:not(.hidden)');
+	if (dialogs.length > 0)
+		showDialog(dialogs[dialogs.length - 1].id, false);
+}
+
+
+function warnAboutUnsavedChanges(event) {
+	if (conf.getConfigString() == savedConfigStr)
+		return;
+
+	event.preventDefault();
+	event.returnValue = '';
+}
+
+
 // Inline event listeners
 
 function resetPad() {
@@ -1038,11 +1074,16 @@ function fixAspect() {
 
 	let mode = document.getElementById('chk-keep-relative').checked;
 
+	if (!(iw > 0 && ih > 0 && ow > 0 && oh > 0)) {
+		alert('Enter positive values for all dimensions');
+		return;
+	}
+
 	conf.fixAspect(iw, ih, ow, oh, screen.isPortrait, mode);
 
 	hideAspectFixer();
 
-	// Do not rescale if aspect ratio has been set instesd of target resolutoin
+	// Do not rescale if aspect ratio has been set instead of target resolution
 	if (ow >= 96 && oh >= 64)
 		setScreenDimensions(ow, oh);
 

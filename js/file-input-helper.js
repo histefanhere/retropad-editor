@@ -3,6 +3,9 @@
 	fileInputs.forEach(elem => {
 		let fspan = document.getElementById(elem.id + '-filename');
 
+		// allow importing same file again (change event is not fired otherwise)
+		elem.addEventListener('click', () => { elem.value = '' });
+
 		if (fspan)
 			elem.addEventListener('change', event => {
 				let name = '';
@@ -18,7 +21,7 @@
 					default:
 						name = event.target.files.length + ' files';
 				}
-				fspan.innerHTML = name;
+				fspan.textContent = name;
 
 			});
 	});

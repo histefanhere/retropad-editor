@@ -25,11 +25,6 @@ button.close-button {
 	right: 4px;
 }
 
-button a {
-	display: inline-block;
-	width: 100%;
-}
-
 br.wide+* {
 	margin-top: 1vh;
 }

@@ -347,7 +347,7 @@ function ConfigHandler() {
 
 		if (buttCount <= 1) {
 			alert('Can not delete last button!');
-			return;
+			return true;
 		}
 
 		let delNumber = Number(parameter.substr(('overlay' + _currentOverlay + '_desc').length));
@@ -827,7 +827,8 @@ function ConfigHandler() {
 	function _updateLinkedButtons(currentName, newName) {
 		// update name in overlayX_descY_next_target = currentName
 		let regParam = new RegExp('^overlay\\d+_desc\\d+_next_target');
-		let regValue = new RegExp('=\\s*\\"' + currentName + '\\"$');
+		let escapedName = String(currentName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		let regValue = new RegExp('=\\s*\\"' + escapedName + '\\"$');
 
 		for (let i = _strings.length - 1; i >= 0; i--) {
 
@@ -890,7 +891,7 @@ function ConfigHandler() {
 		}
 
 		if (missingImages.length > 0) {
-			alert('Images are requiered for loading gamepad config:\n\n' + missingImages.join("\n") + '\n\nImport these files and click "Reset".')
+			alert('Images are required for loading gamepad config:\n\n' + missingImages.join("\n") + '\n\nImport these files and click "Reset".')
 		}
 
 		if (toLoad == 0) {
@@ -941,7 +942,7 @@ function ConfigHandler() {
 						height = imgSizes[name].h;
 					}
 
-					descs = _getParamValue('overlay' + i + '_descs');
+					let descs = _getParamValue('overlay' + i + '_descs');
 					for (let j = 0; j < descs; j++) {
 						let pi = _getParamIndex('overlay' + i + '_desc' + j);
 
