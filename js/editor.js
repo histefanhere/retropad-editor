@@ -2010,7 +2010,11 @@ function fillImagePicker() {
 	let grid = document.getElementById('image-picker-grid');
 	grid.innerHTML = '';
 
-	let names = userImages.concat(Object.keys(images).filter(name => !userImages.includes(name)));
+	let matches = name => name.toLowerCase().includes(filter);
+	let builtInImages = Object.keys(images).filter(name => !userImages.includes(name));
+
+	let userTiles = userImages.filter(matches).map(createImageTile);
+	let builtInTiles = builtInImages.filter(matches).map(createImageTile);
 
 	if (filter == '') {
 		let none = document.createElement('BUTTON');
@@ -2023,24 +2027,46 @@ function fillImagePicker() {
 		none.appendChild(mark);
 		none.appendChild(document.createTextNode('No image'));
 		none.addEventListener('click', () => chooseImage(''));
-		grid.appendChild(none);
+		builtInTiles.unshift(none);
 	}
 
-	names.filter(name => name.toLowerCase().includes(filter)).forEach(name => {
-		let button = document.createElement('BUTTON');
-		button.classList.add('tile');
+	appendImageSection(grid, 'Your images', userTiles);
+	appendImageSection(grid, 'Built-in', builtInTiles);
+}
 
-		let thumbnail = document.createElement('IMG');
-		thumbnail.classList.add('tile__thumb');
-		thumbnail.src = images[name];
-		thumbnail.alt = '';
-		thumbnail.loading = 'lazy';
 
-		button.appendChild(thumbnail);
-		button.appendChild(document.createTextNode(name));
-		button.addEventListener('click', () => chooseImage(name));
-		grid.appendChild(button);
-	});
+function createImageTile(name) {
+	let button = document.createElement('BUTTON');
+	button.classList.add('tile');
+
+	let thumbnail = document.createElement('IMG');
+	thumbnail.classList.add('tile__thumb');
+	thumbnail.src = images[name];
+	thumbnail.alt = '';
+	thumbnail.loading = 'lazy';
+
+	button.appendChild(thumbnail);
+	button.appendChild(document.createTextNode(name));
+	button.addEventListener('click', () => chooseImage(name));
+	return button;
+}
+
+
+function appendImageSection(container, title, tiles) {
+	if (tiles.length == 0) {
+		return;
+	}
+
+	let heading = document.createElement('DIV');
+	heading.classList.add('tile-grid-heading');
+	heading.textContent = title;
+
+	let section = document.createElement('DIV');
+	section.classList.add('tile-grid');
+	tiles.forEach(tile => section.appendChild(tile));
+
+	container.appendChild(heading);
+	container.appendChild(section);
 }
 
 

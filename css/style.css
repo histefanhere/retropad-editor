@@ -1539,12 +1539,16 @@ body.is-testing #panel-outline, body.is-testing #inspector {
 }
 
 #image-picker-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-	gap: 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
 	height: 56vh;
-	align-content: start;
 	overflow-y: auto;
+}
+
+#image-picker-grid .tile-grid {
+	flex: none;
+	grid-auto-rows: max-content;
 }
 
 #image-picker-grid .tile {
