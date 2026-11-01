@@ -2151,6 +2151,11 @@ function addOverlay() {
 		return;
 	}
 
+	if (/["=]/.test(name)) {
+		showDialog('name-invalid-dialog', true);
+		return;
+	}
+
 	if (document.getElementById('chk-duplicate-overlay').checked)
 		conf.duplicateCurrentOverlay(name, props);
 	else
@@ -2174,6 +2179,11 @@ function editOverlay() {
 
 	if (name == '') {
 		showDialog('name-empty-dialog', true);
+		return;
+	}
+
+	if (/["=]/.test(name)) {
+		showDialog('name-invalid-dialog', true);
 		return;
 	}
 
