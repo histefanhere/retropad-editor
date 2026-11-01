@@ -23,6 +23,7 @@ let savedConfigStr;
 let currentRect;
 let suppressRectClick = false;
 let selectionBeforeMouseDown = [];
+let selectedBeforePress = null;
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -188,7 +189,8 @@ function createPadView() {
 				return;
 			}
 
-			selectRect(b, r.i);
+			let next = getNextOverlappingRect(b, e);
+			selectRect(next, Number(next.dataset.lineIndex));
 			document.activeElement.blur();
 		});
 	}
@@ -212,6 +214,14 @@ function selectRect(rect, lineIndex) {
 	});
 
 	enableEditor(true);
+}
+
+
+function getNextOverlappingRect(clickedRect, event) {
+	let stack = document.elementsFromPoint(event.clientX, event.clientY).filter(e => e.classList.contains('rect'));
+	let index = stack.indexOf(selectedBeforePress);
+
+	return index == -1 ? clickedRect : stack[(index + 1) % stack.length];
 }
 
 
@@ -253,6 +263,8 @@ function applySelection(lines) {
 function onRectPointerDown(event, rect, lineIndex) {
 	if (event.button != 0 || event.shiftKey || event.ctrlKey || event.metaKey)
 		return;
+
+	selectedBeforePress = conf.isGroupSelected() ? null : currentRect;
 
 	// Touch: first tap selects, so pad area can still be scrolled
 	if (event.pointerType != 'mouse' && !rect.classList.contains('selected'))
