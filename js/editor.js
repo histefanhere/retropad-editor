@@ -381,7 +381,7 @@ function renameButton(lineIndex, input) {
 
 	if (command == '' || /[\s,"=]/.test(command)) {
 		input.value = conf.getCurrentLineSectionValue('command');
-		alert('Button command should not be empty or contain spaces, commas, quotes or =');
+		showToast('Button command should not be empty or contain spaces, commas, quotes or =');
 		return;
 	}
 
@@ -928,7 +928,7 @@ function readConfigFile(file, onError) {
 		} catch {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
-			alert(errMsg + '\nPrevious config is restored.');
+			showToast(errMsg + '\nPrevious config is restored.');
 			renderConfig(previousConfig, true);
 			savedConfigStr = previousSaved;
 
@@ -1258,7 +1258,7 @@ function restoreSession() {
 		scheduleAutosave();
 	} catch (err) {
 		console.log(err);
-		alert('Can not restore previous work.');
+		showToast('Can not restore previous work.');
 
 		configStr = defaultConfigString;
 		importedFilename = 'retropad.cfg';
@@ -1493,7 +1493,7 @@ async function exportZip() {
 	scheduleAutosave();
 
 	if (missing.length > 0)
-		alert('Images not added to archive:\n' + missing.join('\n'));
+		showToast('Images not added to archive:\n' + missing.join('\n'));
 }
 
 
@@ -1508,7 +1508,7 @@ function applyConfigText() {
 
 	let error = conf.findConfigTextError(text);
 	if (error !== null) {
-		alert('Error in config text:\n' + error);
+		showToast('Error in config text:\n' + error);
 		return;
 	}
 
@@ -1525,7 +1525,7 @@ function applyConfigText() {
 		redrawPad();
 		document.getElementById('config-text').value = conf.getConfigString();
 	} catch {
-		alert('Error in config text.\nPrevious config is restored.');
+		showToast('Error in config text.\nPrevious config is restored.');
 		renderConfig(previousConfig, true);
 		savedConfigStr = previousSaved;
 	}
@@ -1893,7 +1893,7 @@ function processRawProperties(str) {
 		let eqPos = line.indexOf('=');
 
 		if (eqPos <= 0) {
-			alert('Error in line "' + line + '"\nProperty removed');
+			showToast('Error in line "' + line + '"\nProperty removed');
 			return;
 		}
 
@@ -2211,7 +2211,7 @@ function fixAspect() {
 	let mode = document.getElementById('chk-keep-relative').checked;
 
 	if (!(iw > 0 && ih > 0 && ow > 0 && oh > 0)) {
-		alert('Enter positive values for all dimensions');
+		showToast('Enter positive values for all dimensions');
 		return;
 	}
 
@@ -2234,7 +2234,7 @@ function getButtonDataFromDialog() {
 	d.command = document.getElementById('command-name').value.trim() || 'null';
 	if (d.command.search(/\s/) != -1) {
 		d.warn = true;
-		alert('Button command should not contain spaces');
+		showToast('Button command should not contain spaces');
 	}
 
 	d.shape = ['rect', 'radial'][document.getElementById('button-shape').selectedIndex];
@@ -2336,7 +2336,7 @@ function delCurrentButton() {
 	if (conf.isGroupSelected())
 		conf.deleteSelectedButtons();
 	else if (!conf.deleteCurrentButton())
-		alert('No selection!');
+		showToast('No selection!');
 
 	currentRect = null;
 	redrawPad();
