@@ -30,6 +30,7 @@ let selectedBeforePress = null;
 let isSpaceHeld = false;
 let pendingExport = null;
 let isTestMode = false;
+let dialogFocusStack = [];
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -169,6 +170,7 @@ document.addEventListener('keyup', e => {
 });
 
 document.addEventListener('keydown', closeTopDialogOnEscape);
+document.addEventListener('keydown', trapDialogFocus);
 document.addEventListener('keydown', handleShortcuts);
 document.addEventListener('keyup', e => {
 	if (e.key.startsWith('Arrow'))
@@ -1975,15 +1977,67 @@ function showDialog(elementId, isShow) {
 		return;
 
 	if (isShow) {
+		if (dialog.classList.contains('hidden'))
+			dialogFocusStack.push({ id: elementId, element: document.activeElement });
+
 		dialog.classList.remove('hidden');
 	} else {
 		dialog.classList.add('hidden');
+		restoreDialogFocus(elementId);
 		return;
 	}
 
 	let focusCandidates = document.querySelectorAll('#' + elementId + ' .js-dialog__focus');
-	if (focusCandidates.length > 0)
-		focusCandidates[0].focus();
+	let target = focusCandidates.length > 0 ? focusCandidates[0] : getFocusableElements(dialog)[0];
+	if (target)
+		target.focus();
+}
+
+
+function restoreDialogFocus(elementId) {
+	let index = dialogFocusStack.findIndex(e => e.id == elementId);
+	if (index == -1)
+		return;
+
+	let element = dialogFocusStack.splice(index, 1)[0].element;
+	if (element && element.isConnected)
+		element.focus();
+}
+
+
+function getFocusableElements(container) {
+	let selector = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]';
+	return Array.from(container.querySelectorAll(selector)).filter(e => e.offsetParent !== null);
+}
+
+
+function trapDialogFocus(event) {
+	if (event.key != 'Tab')
+		return;
+
+	let dialogs = document.querySelectorAll('.dialog-container:not(.hidden)');
+	if (dialogs.length == 0)
+		return;
+
+	let top = dialogs[dialogs.length - 1];
+	let focusable = getFocusableElements(top);
+	if (focusable.length == 0)
+		return;
+
+	let first = focusable[0];
+	let last = focusable[focusable.length - 1];
+	let active = document.activeElement;
+
+	if (!top.contains(active)) {
+		event.preventDefault();
+		first.focus();
+	} else if (event.shiftKey && active == first) {
+		event.preventDefault();
+		last.focus();
+	} else if (!event.shiftKey && active == last) {
+		event.preventDefault();
+		first.focus();
+	}
 }
 
 
