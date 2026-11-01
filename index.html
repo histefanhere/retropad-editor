@@ -25,8 +25,8 @@
 		<div id='header'>
 			<button class='important' onclick='showFileDialog()'>Import • Export</button>
 			<button class='danger button--normal-size' onclick='showDialog("reset-dialog", true)'>Reset</button>
-			<button class='button--normal-size' id='undo-button' onclick='undo()' disabled>Undo</button>
-			<button class='button--normal-size' id='redo-button' onclick='redo()' disabled>Redo</button>
+			<button class='button--normal-size' id='undo-button' title='Undo (Ctrl+Z)' onclick='undo()' disabled>Undo</button>
+			<button class='button--normal-size' id='redo-button' title='Redo (Ctrl+Y)' onclick='redo()' disabled>Redo</button>
 			<span id='header__caption'><img src='img/retroarch-icon.svg' alt=''>RetroPad Editor</span>
 		</div>
 
@@ -77,7 +77,7 @@
 					<span class='group-header'>BUTTON</span>
 					<div class='toolbar-group__buttons'>
 						<button onclick='showButtonCreator()'>New button</button>
-						<button id='del-current-button' onclick='showDialog("button-delete-dialog", true)'>Delete
+						<button id='del-current-button' title='Delete' onclick='showDialog("button-delete-dialog", true)'>Delete
 							button</button>
 						<button id='show-button-editor' onclick='showButtonEditor()'>Edit
 							button</button>

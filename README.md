@@ -18,6 +18,12 @@ Features:
 Config file and images must be stored in same folder.
 On most Android devices RetroArch will open config only from internal memory even access to sdcard is granted.
 - This editor can load but NOT save configs with image paths (img/A.png will be saved as A.png)
+
+Keyboard shortcuts:
+- Arrows: move selection (Shift for larger steps).
+- Delete: delete selected button.
+- Esc: close dialog or clear selection.
+- Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z: undo, redo.
 ---
 Libretro Docs: https://docs.libretro.com/development/retroarch/input/overlay/
 

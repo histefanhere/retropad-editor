@@ -12,6 +12,8 @@ const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
+const NUDGE_STEP = 0.001;
+const NUDGE_STEP_LARGE = 0.01;
 
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
@@ -112,6 +114,11 @@ document.getElementById('chk-show-screenshot').addEventListener('change', toggle
 window.addEventListener('pointerdown', () => { suppressRectClick = false }, true);
 
 document.addEventListener('keydown', closeTopDialogOnEscape);
+document.addEventListener('keydown', handleShortcuts);
+document.addEventListener('keyup', e => {
+	if (e.key.startsWith('Arrow'))
+		commitHistory();
+});
 window.addEventListener('beforeunload', warnAboutUnsavedChanges);
 window.addEventListener('beforeunload', flushPendingAutosave);
 document.addEventListener('visibilitychange', () => {
@@ -1364,8 +1371,84 @@ function closeTopDialogOnEscape(event) {
 	if (pendingSession)
 		return;
 
-	if (dialogs.length > 0)
+	if (dialogs.length > 0) {
 		showDialog(dialogs[dialogs.length - 1].id, false);
+		event.stopImmediatePropagation();
+	}
+}
+
+
+function handleShortcuts(event) {
+	if (document.querySelector('.dialog-container:not(.hidden)'))
+		return;
+
+	if (event.target.matches('input, textarea, select'))
+		return;
+
+	let key = event.key.toLowerCase();
+	let isCtrl = event.ctrlKey || event.metaKey;
+
+	if (isCtrl) {
+		if (key == 'z' && !event.shiftKey)
+			undo();
+		else if (key == 'y' || key == 'z')
+			redo();
+		else
+			return;
+
+		event.preventDefault();
+		return;
+	}
+
+	// Editor is enabled only when buttons are selected
+	let isSelected = !document.getElementById('x-number').disabled;
+	if (!isSelected)
+		return;
+
+	let step = event.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+
+	switch (key) {
+		case 'arrowleft':
+			nudgeSelection('x', -step);
+			break;
+
+		case 'arrowright':
+			nudgeSelection('x', step);
+			break;
+
+		case 'arrowup':
+			nudgeSelection('y', -step);
+			break;
+
+		case 'arrowdown':
+			nudgeSelection('y', step);
+			break;
+
+		case 'delete':
+		case 'backspace':
+			if (!document.getElementById('del-current-button').disabled)
+				showDialog('button-delete-dialog', true);
+			break;
+
+		case 'escape':
+			deselectAll();
+			conf.setCurrentLine(-1);
+			currentRect = null;
+			enableEditor(false);
+			break;
+
+		default:
+			return;
+	}
+
+	event.preventDefault();
+}
+
+
+function nudgeSelection(section, delta) {
+	let group = conf.getSelectionDimensions();
+	let value = group ? group[section] : Number(conf.getCurrentLineSectionValue(section));
+	setButtonParam(section, value + delta);
 }
 
 
