@@ -1429,6 +1429,7 @@ function enableEditorSliders(enable) {
 	let inputs = editor.querySelectorAll('input,button');
 	inputs.forEach(e => { e.disabled = !enable })
 	document.getElementById('duplicate-button').disabled = !enable;
+	document.getElementById('mirror-button').disabled = !enable;
 	document.getElementById('del-current-button').disabled = !enable;
 	document.querySelectorAll('#align-buttons button').forEach(e => { e.disabled = !enable || !conf.isGroupSelected() });
 }
@@ -1697,7 +1698,17 @@ function duplicateSelection() {
 	if (document.getElementById('duplicate-button').disabled)
 		return;
 
-	let created = conf.duplicateSelectedButtons(DUPLICATE_OFFSET);
+	copySelection((x, y) => ({ x: x + DUPLICATE_OFFSET, y: y + DUPLICATE_OFFSET }));
+}
+
+
+function mirrorSelection() {
+	copySelection((x, y) => ({ x: 1 - x, y: y }));
+}
+
+
+function copySelection(getPosition) {
+	let created = conf.duplicateSelectedButtons(getPosition);
 
 	if (created.length == 1) {
 		conf.resetGroupSelection();

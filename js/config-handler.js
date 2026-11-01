@@ -349,7 +349,7 @@ function ConfigHandler() {
 
 
 	// Returns line indexes of new buttons
-	this.duplicateSelectedButtons = function (offset) {
+	this.duplicateSelectedButtons = function (getPosition) {
 		let indexes = selectedButtonLineIndexes.length > 0 ? selectedButtonLineIndexes : [_currentLine];
 		let names = indexes.map(i => _isOverlayXX_descYY(_strings[i]));
 		let created = [];
@@ -358,15 +358,14 @@ function ConfigHandler() {
 			this.setCurrentLine(_getParamIndex(name));
 
 			let values = this.getCurrentButtonParams();
-			let x = Number(this.getCurrentLineSectionValue('x')) + offset;
-			let y = Number(this.getCurrentLineSectionValue('y')) + offset;
+			let position = getPosition(Number(this.getCurrentLineSectionValue('x')), Number(this.getCurrentLineSectionValue('y')));
 			let w = this.getCurrentLineSectionValue('w');
 			let h = this.getCurrentLineSectionValue('h');
 
 			this.createButton(values.command, values.shape, values.image, values.addLines);
 
-			this.setCurrentLineSectionValue('x', x.toFixed(5));
-			this.setCurrentLineSectionValue('y', y.toFixed(5));
+			this.setCurrentLineSectionValue('x', position.x.toFixed(5));
+			this.setCurrentLineSectionValue('y', position.y.toFixed(5));
 			this.setCurrentLineSectionValue('w', w);
 			this.setCurrentLineSectionValue('h', h);
 
