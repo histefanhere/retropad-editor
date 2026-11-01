@@ -10,6 +10,7 @@ Features:
 - Multiple layers; auto switch orientation for portrait overlays.
 - Fix overlay aspect ratio.
 - Import image resources in addition to 'flat' image set.
+- Drag and drop config and image files onto the page.
 - Export config and its images together as a ZIP archive.
 - Scale viewport for comfortable editing on small screens.
 - Display sensitivity range for analog sticks.

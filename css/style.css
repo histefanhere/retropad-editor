@@ -640,6 +640,11 @@ input[type=number] {
 	color: #f75;
 }
 
+body.is-file-dragging #main-container {
+	outline: 3px dashed #08d;
+	outline-offset: -3px;
+}
+
 .hidden {
 	display: none;
 }

@@ -124,6 +124,13 @@ document.getElementById('chk-show-screenshot').addEventListener('change', toggle
 
 window.addEventListener('pointerdown', () => { suppressRectClick = false }, true);
 
+window.addEventListener('dragover', onFileDragOver);
+window.addEventListener('drop', onFileDrop);
+window.addEventListener('dragleave', e => {
+	if (!e.relatedTarget)
+		document.body.classList.remove('is-file-dragging');
+});
+
 {
 	let padContainer = document.getElementById('gamepad-container');
 	padContainer.addEventListener('wheel', onCanvasWheel, { passive: false });
@@ -813,6 +820,14 @@ function loadConfigFromFile(e) {
 	if (!file)
 		return;
 
+	readConfigFile(file, () => {
+		e.target.value = '';
+		document.getElementById('load-config-filename').textContent = '';
+	});
+}
+
+
+function readConfigFile(file, onError) {
 	let reader = new FileReader();
 	reader.onload = function (ev) {
 		let previousConfig = conf.getConfigString();
@@ -829,8 +844,9 @@ function loadConfigFromFile(e) {
 			alert(errMsg + '\nPrevious config is restored.');
 			renderConfig(previousConfig, true);
 			savedConfigStr = previousSaved;
-			e.target.value = '';
-			document.getElementById('load-config-filename').textContent = '';
+
+			if (onError)
+				onError();
 		}
 	};
 	reader.readAsText(file);
@@ -856,17 +872,51 @@ function renderConfig(str, keepHistory) {
 
 
 function loadImageFiles(e) {
+	readImageFiles(e.target.files);
+}
+
+
+function onFileDragOver(event) {
+	if (pendingSession || !event.dataTransfer.types.includes('Files'))
+		return;
+
+	event.preventDefault();
+	document.body.classList.add('is-file-dragging');
+}
+
+
+function onFileDrop(event) {
+	document.body.classList.remove('is-file-dragging');
+
+	if (pendingSession || event.dataTransfer.files.length == 0)
+		return;
+
+	event.preventDefault();
+
+	let files = Array.from(event.dataTransfer.files);
+	let config = files.find(f => /\.cfg$/i.test(f.name));
+	let imageFiles = files.filter(f => /\.(png|jpe?g)$/i.test(f.name));
+
+	if (imageFiles.length > 0)
+		readImageFiles(imageFiles);
+
+	if (config)
+		readConfigFile(config);
+}
+
+
+function readImageFiles(files) {
 	let imgCounter = 0;
 	let loadCounter = 0;
 
-	for (let i = 0; i < e.target.files.length; i++) {
-		let file = e.target.files[i];
+	for (let i = 0; i < files.length; i++) {
+		let file = files[i];
 
 		if (!file || !/\.(png|jpe?g)$/i.test(file.name))
 			continue;
 
 		imgCounter++;
-		let name = e.target.files[i].name;
+		let name = file.name;
 		console.log(name);
 
 		let reader = new FileReader();
