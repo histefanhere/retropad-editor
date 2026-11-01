@@ -817,6 +817,10 @@ body.dark {
 	color: #ddd;
 }
 
+body.dark #screenpad {
+	color: #000;
+}
+
 body.dark #header, body.dark #toolbar, body.dark #editor-container, body.dark #editor, body.dark #footer, body.dark .modal-dialog {
 	background-color: #2a2a30;
 	box-shadow: none;
