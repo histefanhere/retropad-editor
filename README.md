@@ -22,6 +22,7 @@ On most Android devices RetroArch will open config only from internal memory eve
 Keyboard shortcuts:
 - Arrows: move selection (Shift for larger steps).
 - Delete: delete selected button.
+- Ctrl+D: duplicate selection.
 - Esc: close dialog or clear selection.
 - Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z: undo, redo.
 ---

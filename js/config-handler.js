@@ -343,6 +343,35 @@ function ConfigHandler() {
 	}
 
 
+	// Returns line indexes of new buttons
+	this.duplicateSelectedButtons = function (offset) {
+		let indexes = selectedButtonLineIndexes.length > 0 ? selectedButtonLineIndexes : [_currentLine];
+		let names = indexes.map(i => _isOverlayXX_descYY(_strings[i]));
+		let created = [];
+
+		names.forEach(name => {
+			this.setCurrentLine(_getParamIndex(name));
+
+			let values = this.getCurrentButtonParams();
+			let x = Number(this.getCurrentLineSectionValue('x')) + offset;
+			let y = Number(this.getCurrentLineSectionValue('y')) + offset;
+			let w = this.getCurrentLineSectionValue('w');
+			let h = this.getCurrentLineSectionValue('h');
+
+			this.createButton(values.command, values.shape, values.image, values.addLines);
+
+			this.setCurrentLineSectionValue('x', x.toFixed(5));
+			this.setCurrentLineSectionValue('y', y.toFixed(5));
+			this.setCurrentLineSectionValue('w', w);
+			this.setCurrentLineSectionValue('h', h);
+
+			created.push(_currentLine);
+		});
+
+		return created;
+	}
+
+
 	this.deleteCurrentButton = function () {
 		if (_currentLine == -1) {
 			return false;
@@ -632,6 +661,11 @@ function ConfigHandler() {
 
 	this.isLineInSelection = function (index) {
 		return selectedButtonLineIndexes.indexOf(index) != -1;
+	}
+
+
+	this.setSelectedIndexes = function (indexes) {
+		selectedButtonLineIndexes = indexes;
 	}
 
 

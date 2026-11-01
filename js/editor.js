@@ -14,6 +14,7 @@ const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
 const NUDGE_STEP = 0.001;
 const NUDGE_STEP_LARGE = 0.01;
+const DUPLICATE_OFFSET = 0.02;
 
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
@@ -1185,6 +1186,7 @@ function enableEditorSliders(enable) {
 	let editor = document.getElementById('editor');
 	let inputs = editor.querySelectorAll('input,button');
 	inputs.forEach(e => { e.disabled = !enable })
+	document.getElementById('duplicate-button').disabled = !enable;
 }
 
 
@@ -1393,6 +1395,8 @@ function handleShortcuts(event) {
 			undo();
 		else if (key == 'y' || key == 'z')
 			redo();
+		else if (key == 'd')
+			duplicateSelection();
 		else
 			return;
 
@@ -1442,6 +1446,25 @@ function handleShortcuts(event) {
 	}
 
 	event.preventDefault();
+}
+
+
+function duplicateSelection() {
+	if (document.getElementById('duplicate-button').disabled)
+		return;
+
+	let created = conf.duplicateSelectedButtons(DUPLICATE_OFFSET);
+
+	if (created.length == 1) {
+		conf.resetGroupSelection();
+		redrawPad();
+		selectRect(document.querySelector('.rect[data-line-index="' + created[0] + '"]'), created[0]);
+	} else {
+		conf.setSelectedIndexes(created);
+		currentRect = null;
+		redrawPad();
+		setEditorControls();
+	}
 }
 
 
