@@ -28,6 +28,7 @@ let suppressRectClick = false;
 let selectionBeforeMouseDown = [];
 let selectedBeforePress = null;
 let isSpaceHeld = false;
+let pendingExport = null;
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -1473,6 +1474,54 @@ function loadTemplate() {
 	configStr = template.config;
 	importedFilename = template.id + '.cfg';
 	resetExportFilename();
+}
+
+
+function requestExport(exportFunction) {
+	let problems = conf.getConfigProblems(images);
+
+	if (problems.length == 0) {
+		exportFunction();
+		return;
+	}
+
+	pendingExport = exportFunction;
+	fillCheckDialog(problems, []);
+	document.getElementById('check-export-anyway').classList.remove('hidden');
+	showDialog('check-dialog', true);
+}
+
+
+function exportAnyway() {
+	showDialog('check-dialog', false);
+	pendingExport();
+}
+
+
+function showConfigCheck() {
+	fillCheckDialog(conf.getConfigProblems(images), []);
+	document.getElementById('check-export-anyway').classList.add('hidden');
+	showDialog('check-dialog', true);
+}
+
+
+function fillCheckDialog(problems, notes) {
+	let list = document.getElementById('check-list');
+	list.innerHTML = '';
+
+	let addRow = (text, className) => {
+		let row = document.createElement('LI');
+		row.textContent = text;
+		if (className)
+			row.classList.add(className);
+		list.appendChild(row);
+	};
+
+	problems.forEach(text => addRow(text, 'is-problem'));
+	notes.forEach(text => addRow(text));
+
+	if (problems.length + notes.length == 0)
+		addRow('No problems found.');
 }
 
 

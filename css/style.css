@@ -564,6 +564,21 @@ input[type=number] {
 	font-family: monospace;
 }
 
+#check-list {
+	list-style: none;
+	max-width: 80vw;
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+#check-list li {
+	padding: 2px 0;
+}
+
+#check-list li.is-problem {
+	color: #b01;
+}
+
 #download-help {
 	display: inline-block;
 	color: #777;

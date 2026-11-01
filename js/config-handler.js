@@ -546,6 +546,54 @@ function ConfigHandler() {
 	}
 
 
+	// Returns descriptions of things that will not work in RetroArch
+	this.getConfigProblems = function (imagesObj) {
+		let problems = [];
+		let count = Number(_getParamValue('overlays'));
+		let names = [];
+
+		for (let i = 0; i < count; i++)
+			names.push(_getParamValue('overlay' + i + '_name'));
+
+		for (let i = 0; i < count; i++) {
+			let label = names[i] || ('overlay ' + i);
+			let overlayImage = _getParamValue('overlay' + i + '_overlay');
+
+			if (overlayImage && !imagesObj[overlayImage])
+				problems.push(label + ': missing image ' + overlayImage);
+
+			let descs = Number(_getParamValue('overlay' + i + '_descs'));
+			let found = _strings.filter(line => line.search(new RegExp('^overlay' + i + '_desc\\d+\\s*=')) == 0);
+
+			if (found.length != descs)
+				problems.push(label + ': ' + descs + ' buttons declared but ' + found.length + ' found');
+
+			found.forEach(line => {
+				let param = line.split('=')[0].trim();
+				let command = _getParamSectionValue(line, 'command');
+
+				let image = _getParamValue(param + '_overlay');
+				if (image && !imagesObj[image])
+					problems.push(label + ', ' + command + ': missing image ' + image);
+
+				let target = _getParamValue(param + '_next_target');
+				if (target && !names.includes(target))
+					problems.push(label + ', ' + command + ': next_target "' + target + '" does not exist');
+
+				let x = Number(_getParamSectionValue(line, 'x'));
+				let y = Number(_getParamSectionValue(line, 'y'));
+				let w = Number(_getParamSectionValue(line, 'w'));
+				let h = Number(_getParamSectionValue(line, 'h'));
+
+				if (x + w <= 0 || x - w >= 1 || y + h <= 0 || y - h >= 1)
+					problems.push(label + ', ' + command + ': button is off screen');
+			});
+		}
+
+		return problems;
+	}
+
+
 	this.getCurrentOverlay = function () {
 		return _currentOverlay;
 	}

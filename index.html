@@ -508,9 +508,10 @@
 
 						<tr>
 							<td>
-								<button class='empty' id='export-button' onclick='exportConfig()'>Export config</button>
+								<button class='empty' id='export-button' onclick='requestExport(exportConfig)'>Export config</button>
 								<button class='empty' id='export-zip-button' title='Config and all images it uses'
-									onclick='exportZip()'>Export ZIP</button>
+									onclick='requestExport(exportZip)'>Export ZIP</button>
+								<button class='empty button--normal-size' id='check-config-button' onclick='showConfigCheck()'>Check</button>
 								<button class="empty button--normal-size"
 									onclick='showDialog("export-hint-dialog", true)'>?</button>
 							</td>
@@ -593,6 +594,22 @@
 				<div class='modal-dialog__footer-box'>
 					<button class='important' onclick='loadTemplate()'>Load</button>
 					<button onclick='showDialog("template-dialog", false)'>Cancel</button>
+				</div>
+			</div>
+		</div>
+
+		<div id='check-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
+				<div class='modal-dialog__header-box'>
+					<span>Config check</span>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("check-dialog", false)'></button>
+				</div>
+				<div class='modal-dialog__content-box'>
+					<ul id='check-list' class='notranslate' translate='no'></ul>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button class='danger hidden' id='check-export-anyway' onclick='exportAnyway()'>Export anyway</button>
+					<button class='js-dialog__focus' onclick='showDialog("check-dialog", false)'>Close</button>
 				</div>
 			</div>
 		</div>
