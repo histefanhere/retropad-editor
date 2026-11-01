@@ -613,6 +613,20 @@ input[type=radio]:not(.visually-hidden) {
 	color: var(--text-muted);
 }
 
+.device-row {
+	display: flex;
+	gap: 6px;
+}
+
+.device-row select {
+	flex: 1;
+	min-width: 0;
+}
+
+.device-row .btn {
+	flex: none;
+}
+
 .field-inline {
 	display: flex;
 	align-items: center;

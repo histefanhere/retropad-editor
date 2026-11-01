@@ -18,6 +18,7 @@ const ZOOM_MAX = 5;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
 const PREFERENCES_KEY = 'retropad-editor-preferences';
+const CUSTOM_DEVICES_KEY = 'retropad-editor-devices';
 const PREFERENCE_CHECKBOXES = ['chk-show-shapes', 'chk-show-names', 'chk-show-offscreen', 'chk-snap'];
 const NUDGE_STEP = 0.001;
 const NUDGE_STEP_LARGE = 0.01;
@@ -39,6 +40,7 @@ let isZoomFit = true;
 let isTestMode = false;
 let dialogFocusStack = [];
 let isLoadingPreferences = true;
+let customDevices = [];
 let colorSchemeIndex = 0;
 let cancelActiveDrag = null;
 
@@ -206,7 +208,14 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () 
 setAppTheme('auto');
 
 PREFERENCE_CHECKBOXES.forEach(id => document.getElementById(id).addEventListener('change', savePreferences));
+loadCustomDevices();
 loadPreferences();
+
+// Keep the list current when another tab changes it
+window.addEventListener('storage', e => {
+	if (e.key == CUSTOM_DEVICES_KEY)
+		loadCustomDevices();
+});
 
 checkForSavedSession();
 
@@ -1888,10 +1897,7 @@ function fillOverlayFields() {
 	document.getElementById('display-width').value = screen.longSide;
 	document.getElementById('display-height').value = screen.shortSide;
 
-	let preset = document.getElementById('device-preset');
-	preset.value = screen.longSide + 'x' + screen.shortSide;
-	if (preset.selectedIndex == -1)
-		preset.value = '';
+	syncDevicePreset();
 
 	document.getElementById('screenshot-width').value = +Number(screen.shotFrameWidth).toFixed(2);
 	document.getElementById('screenshot-height').value = +Number(screen.shotFrameHeight).toFixed(2);
@@ -2781,6 +2787,141 @@ function applyDevicePreset() {
 	document.getElementById('display-width').value = size[0];
 	document.getElementById('display-height').value = size[1];
 	applyScreenDimensions();
+}
+
+
+// Shows the device that has the current screen size. A chosen device stays
+// chosen when other devices have the same size.
+function syncDevicePreset() {
+	let preset = document.getElementById('device-preset');
+	let size = screen.longSide + 'x' + screen.shortSide;
+
+	if (preset.value != size) {
+		preset.value = size;
+		if (preset.selectedIndex == -1)
+			preset.value = '';
+	}
+
+	updateDeviceDeleteButton();
+}
+
+
+function updateDeviceDeleteButton() {
+	let isCustom = getSelectedCustomDeviceIndex() != -1;
+	document.getElementById('device-delete-button').classList.toggle('hidden', !isCustom);
+}
+
+
+function getSelectedCustomDeviceIndex() {
+	let option = document.getElementById('device-preset').selectedOptions[0];
+	return option && option.parentElement.id == 'device-custom-group' ? option.index - 1 : -1;
+}
+
+
+function isValidCustomDevice(device) {
+	return device && typeof device.name == 'string' && device.name != '' && device.width > 0 && device.height > 0;
+}
+
+
+function loadCustomDevices() {
+	let devices = null;
+
+	try {
+		devices = JSON.parse(localStorage.getItem(CUSTOM_DEVICES_KEY));
+	} catch {
+		// Start with no saved devices
+	}
+
+	customDevices = Array.isArray(devices) ? devices.filter(isValidCustomDevice) : [];
+	renderCustomDevices();
+}
+
+
+function saveCustomDevices() {
+	try {
+		localStorage.setItem(CUSTOM_DEVICES_KEY, JSON.stringify(customDevices));
+	} catch {
+		showToast('This browser could not save your devices. They will be gone when you close the page.');
+	}
+}
+
+
+function renderCustomDevices() {
+	let group = document.getElementById('device-custom-group');
+
+	group.replaceChildren(...customDevices.map(device => {
+		let option = document.createElement('OPTION');
+		option.value = device.width + 'x' + device.height;
+		option.textContent = device.name + ' (' + device.width + ' × ' + device.height + ')';
+		return option;
+	}));
+	group.hidden = customDevices.length == 0;
+
+	syncDevicePreset();
+}
+
+
+function showDeviceCreator() {
+	document.getElementById('device-name').value = '';
+	document.getElementById('device-width').value = screen.longSide;
+	document.getElementById('device-height').value = screen.shortSide;
+	document.getElementById('device-error').classList.add('hidden');
+	showDialog('device-create-dialog', true);
+}
+
+
+function getCustomDeviceError(name, width, height) {
+	if (name == '')
+		return 'Enter a name for the device.';
+
+	if (customDevices.some(device => device.name.toLowerCase() == name.toLowerCase()))
+		return 'Another device already has this name.';
+
+	if (!(width > 0) || !(height > 0))
+		return 'Enter a screen size greater than zero.';
+
+	return null;
+}
+
+
+function addCustomDevice() {
+	let name = document.getElementById('device-name').value.trim();
+	let first = Number(document.getElementById('device-width').value);
+	let second = Number(document.getElementById('device-height').value);
+	let errorBox = document.getElementById('device-error');
+	let error = getCustomDeviceError(name, first, second);
+
+	errorBox.textContent = error || '';
+	errorBox.classList.toggle('hidden', !error);
+
+	if (error)
+		return;
+
+	customDevices.push({ name: name, width: Math.max(first, second), height: Math.min(first, second) });
+	saveCustomDevices();
+	renderCustomDevices();
+	showDialog('device-create-dialog', false);
+
+	let group = document.getElementById('device-custom-group');
+	group.lastElementChild.selected = true;
+	applyDevicePreset();
+}
+
+
+function deleteCurrentDevice() {
+	let index = getSelectedCustomDeviceIndex();
+	if (index == -1)
+		return;
+
+	let device = customDevices.splice(index, 1)[0];
+	saveCustomDevices();
+	renderCustomDevices();
+
+	showToast('Deleted device “' + device.name + '”', 'Undo', () => {
+		customDevices.splice(index, 0, device);
+		saveCustomDevices();
+		renderCustomDevices();
+	});
 }
 
 

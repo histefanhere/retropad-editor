@@ -223,18 +223,25 @@
 					<div class='panel-heading'><h2>Screen</h2></div>
 					<div class='field'>
 						<label class='field-label' for='device-preset'>Device</label>
-						<select id='device-preset' onchange='applyDevicePreset()'>
-							<option value=''>Custom size</option>
-							<option value='1920x1080'>Phone 16:9 (1920 × 1080)</option>
-							<option value='2340x1080'>Phone 19.5:9 (2340 × 1080)</option>
-							<option value='2400x1080'>Phone 20:9 (2400 × 1080)</option>
-							<option value='2560x1440'>Phone QHD (2560 × 1440)</option>
-							<option value='2048x1536'>Tablet 4:3 (2048 × 1536)</option>
-							<option value='2560x1600'>Tablet 16:10 (2560 × 1600)</option>
-							<option value='1280x800'>Steam Deck (1280 × 800)</option>
-							<option value='1280x720'>Nintendo Switch handheld (1280 × 720)</option>
-							<option value='640x480'>Handheld 4:3 (640 × 480)</option>
-						</select>
+						<div class='device-row'>
+							<select id='device-preset' onchange='applyDevicePreset()'>
+								<option value=''>Custom size</option>
+								<optgroup id='device-custom-group' label='My devices' hidden></optgroup>
+								<optgroup label='Built-in'>
+									<option value='1920x1080'>Phone 16:9 (1920 × 1080)</option>
+									<option value='2340x1080'>Phone 19.5:9 (2340 × 1080)</option>
+									<option value='2400x1080'>Phone 20:9 (2400 × 1080)</option>
+									<option value='2560x1440'>Phone QHD (2560 × 1440)</option>
+									<option value='2048x1536'>Tablet 4:3 (2048 × 1536)</option>
+									<option value='2560x1600'>Tablet 16:10 (2560 × 1600)</option>
+									<option value='1280x800'>Steam Deck (1280 × 800)</option>
+									<option value='1280x720'>Nintendo Switch handheld (1280 × 720)</option>
+									<option value='640x480'>Handheld 4:3 (640 × 480)</option>
+								</optgroup>
+							</select>
+							<button class='btn btn--icon' id='device-add-button' title='Add a device' aria-label='Add a device' onclick='showDeviceCreator()'><svg class='icon icon--small'><use href='#i-plus' /></svg></button>
+							<button class='btn btn--icon btn--danger hidden' id='device-delete-button' title='Delete this device' aria-label='Delete this device' onclick='deleteCurrentDevice()'><svg class='icon icon--small'><use href='#i-trash' /></svg></button>
+						</div>
 					</div>
 					<div class='field-pair'>
 						<div class='field'>
@@ -482,6 +489,38 @@
 			<footer class='dialog-footer'>
 				<button class='btn' onclick='hideOverlayEditor()'>Cancel</button>
 				<button class='btn btn--primary' id='overlay-create-button' onclick='addOverlay()'>Add overlay</button>
+			</footer>
+		</div>
+	</div>
+
+	<div id='device-create-dialog' class='dialog-container hidden'>
+		<div class='modal-dialog' role='dialog' aria-modal='true' aria-labelledby='device-create-title'>
+			<header class='dialog-header'>
+				<h2 id='device-create-title'>Add a device</h2>
+				<button class='btn btn--ghost btn--icon' aria-label='Close' onclick='showDialog("device-create-dialog", false)'><svg class='icon'><use href='#i-close' /></svg></button>
+			</header>
+			<div class='dialog-body' onkeydown='if (event.key == "Enter") { event.preventDefault(); addCustomDevice(); }'>
+				<div class='field'>
+					<label class='field-label' for='device-name'>Name</label>
+					<input type='text' id='device-name' class='js-dialog__focus notranslate' translate='no' maxlength='40' autocomplete='off' spellcheck='false'>
+				</div>
+				<div class='field-pair'>
+					<div class='field'>
+						<label class='field-label' for='device-width'>Long side</label>
+						<input type='number' id='device-width' min='1' step='any'>
+					</div>
+					<span class='field-pair__by'>×</span>
+					<div class='field'>
+						<label class='field-label' for='device-height'>Short side</label>
+						<input type='number' id='device-height' min='1' step='any'>
+					</div>
+				</div>
+				<p class='field-error hidden' id='device-error' role='alert'></p>
+				<p class='field-note'>Saved in this browser, and listed under Device for any pad you edit here.</p>
+			</div>
+			<footer class='dialog-footer'>
+				<button class='btn' onclick='showDialog("device-create-dialog", false)'>Cancel</button>
+				<button class='btn btn--primary' id='device-create-button' onclick='addCustomDevice()'>Add device</button>
 			</footer>
 		</div>
 	</div>
