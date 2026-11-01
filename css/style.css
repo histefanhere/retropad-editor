@@ -156,10 +156,15 @@ input[type=number] {
 
 #gamepad-container {
 	text-align: center;
-	overflow-x: auto;
+	overflow: auto;
+	max-height: 85vh;
 	border-bottom: 1px solid #ccd;
 	margin-left: 0.5vw;
 	margin-right: 0.5vw;
+}
+
+#gamepad-container.is-panning, #gamepad-container.is-panning * {
+	cursor: grabbing;
 }
 
 #gamepad-container__scroll-frame {

@@ -12,6 +12,9 @@ const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
 const SNAP_THRESHOLD = 0.008;
 const SNAP_GRID_STEP = 0.05;
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 5;
 const HISTORY_LIMIT = 100;
 const AUTOSAVE_DELAY_MS = 500;
 const NUDGE_STEP = 0.001;
@@ -24,6 +27,7 @@ let currentRect;
 let suppressRectClick = false;
 let selectionBeforeMouseDown = [];
 let selectedBeforePress = null;
+let isSpaceHeld = false;
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -42,17 +46,18 @@ let screen = {
 	isPortrait: false,
 
 	scale: 1,
+	zoom: 1,
 
 	get longSide() { return Math.max(this._height, this._width) },
 	get shortSide() { return Math.min(this._height, this._width) },
 
 	set width(value) { this._width = Number(value || screen._width || DEF_WIDTH) },
 	get enteredWidth() { return this.isPortrait ? this.shortSide : this.longSide },
-	get width() { return this.enteredWidth * this.scale },
+	get width() { return this.enteredWidth * this.scale * this.zoom },
 
 	set height(value) { this._height = Number(value || screen._height || DEF_HEIGHT) },
 	get enteredHeight() { return this.isPortrait ? this.longSide : this.shortSide },
-	get height() { return this.enteredHeight * this.scale },
+	get height() { return this.enteredHeight * this.scale * this.zoom },
 
 	shotFrameWidth: DEF_SCR_WIDTH,
 	shotFrameHeight: DEF_SCR_HEIGHT,
@@ -118,6 +123,38 @@ document.getElementById('load-screenshot').addEventListener('change', loadScreen
 document.getElementById('chk-show-screenshot').addEventListener('change', toggleScreenshot);
 
 window.addEventListener('pointerdown', () => { suppressRectClick = false }, true);
+
+{
+	let padContainer = document.getElementById('gamepad-container');
+	padContainer.addEventListener('wheel', onCanvasWheel, { passive: false });
+	padContainer.addEventListener('pointerdown', onCanvasPanStart, true);
+
+	// Panning must not start selection or button drag
+	padContainer.addEventListener('mousedown', e => {
+		if (e.button == 1 || isSpaceHeld) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	}, true);
+}
+
+document.addEventListener('keydown', e => {
+	if (e.code != 'Space' || e.target.matches('input, textarea, select'))
+		return;
+
+	// Space keeps its usual action on focused button unless pointer is over canvas
+	if (e.target.matches('button') && !document.getElementById('gamepad-container').matches(':hover'))
+		return;
+
+	isSpaceHeld = true;
+	e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+	if (e.code == 'Space' && isSpaceHeld) {
+		isSpaceHeld = false;
+		e.preventDefault();
+	}
+});
 
 document.addEventListener('keydown', closeTopDialogOnEscape);
 document.addEventListener('keydown', handleShortcuts);
@@ -1029,18 +1066,26 @@ function updateHistoryButtons() {
 
 function resetScreen() {
 	let s = document.getElementById('screenpad');
-
-	s.style.width = screen.width + 'px';
-	s.style.height = screen.height + 'px';
-
 	s.innerHTML = '';
 
 	let d = document.createElement('DIV');
 	d.classList.add('inner');
 	d.id = 'game-screenshot'
+	s.appendChild(d);
 
-	let shotWidth = screen.shotFrameWidth * screen.scale;
-	let shotHeight = screen.shotFrameHeight * screen.scale;
+	updateScreenSize();
+}
+
+
+function updateScreenSize() {
+	let s = document.getElementById('screenpad');
+	let d = document.getElementById('game-screenshot');
+
+	s.style.width = screen.width + 'px';
+	s.style.height = screen.height + 'px';
+
+	let shotWidth = screen.shotFrameWidth * screen.scale * screen.zoom;
+	let shotHeight = screen.shotFrameHeight * screen.scale * screen.zoom;
 
 	d.style.width = shotWidth + 'px';
 	d.style.height = shotHeight + 'px';
@@ -1051,8 +1096,60 @@ function resetScreen() {
 		d.style.top = 0;
 	else
 		d.style.top = (screen.height - shotHeight) / 2 + 'px';
+}
 
-	s.appendChild(d);
+
+function setZoom(value) {
+	screen.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+	document.getElementById('zoom-value').textContent = Math.round(screen.zoom * 100) + '%';
+	updateScreenSize();
+}
+
+
+function changeZoom(direction) {
+	setZoom(screen.zoom + direction * ZOOM_STEP);
+}
+
+
+function onCanvasWheel(event) {
+	if (!event.ctrlKey && !event.metaKey)
+		return;
+
+	event.preventDefault();
+	changeZoom(event.deltaY < 0 ? 1 : -1);
+}
+
+
+function onCanvasPanStart(event) {
+	if (event.button != 1 && !(event.button == 0 && isSpaceHeld))
+		return;
+
+	event.preventDefault();
+	event.stopPropagation();
+
+	let container = document.getElementById('gamepad-container');
+	let startX = event.clientX;
+	let startY = event.clientY;
+	let startLeft = container.scrollLeft;
+	let startTop = container.scrollTop;
+
+	container.classList.add('is-panning');
+	container.setPointerCapture(event.pointerId);
+	container.addEventListener('pointermove', move);
+	container.addEventListener('pointerup', end);
+	container.addEventListener('pointercancel', end);
+
+	function move(e) {
+		container.scrollLeft = startLeft - (e.clientX - startX);
+		container.scrollTop = startTop - (e.clientY - startY);
+	}
+
+	function end() {
+		container.classList.remove('is-panning');
+		container.removeEventListener('pointermove', move);
+		container.removeEventListener('pointerup', end);
+		container.removeEventListener('pointercancel', end);
+	}
 }
 
 

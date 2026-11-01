@@ -39,6 +39,11 @@
 						<button onclick='showScreenSizeDialog()'>Set screen size</button>
 						<button title='Color theme' id='show-colors-button' onclick='showColorsDialog()'>C</button>
 					</div>
+					<div class='join-buttons-div' id='zoom-controls'>
+						<button class='button--normal-size' id='zoom-out' title='Zoom out' onclick='changeZoom(-1)'>&minus;</button>
+						<button class='button--normal-size' id='zoom-value' title='Reset zoom' onclick='setZoom(1)'>100%</button>
+						<button class='button--normal-size' id='zoom-in' title='Zoom in' onclick='changeZoom(1)'>+</button>
+					</div>
 					<br>
 					<div class='toolbar-group__checkboxes'>
 						<div class='checkbox-wrapper'>
