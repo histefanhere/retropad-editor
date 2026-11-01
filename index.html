@@ -206,6 +206,7 @@
 							<td>
 								<input type='text' id='image-name'>
 								<select class='miniselect notranslate' translate='no' id='image-select' aria-label='Image list'></select>
+								<button class='button--normal-size' id='image-picker-button' title='Choose from thumbnails' aria-label='Choose from thumbnails' onclick='showImagePicker()'>&#9638;</button>
 							</td>
 						</tr>
 
@@ -616,6 +617,22 @@
 				<div class='modal-dialog__footer-box'>
 					<button class='danger hidden' id='check-export-anyway' onclick='exportAnyway()'>Export anyway</button>
 					<button class='js-dialog__focus' onclick='showDialog("check-dialog", false)'>Close</button>
+				</div>
+			</div>
+		</div>
+
+		<div id='image-picker-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
+				<div class='modal-dialog__header-box'>
+					<span>Choose image</span>
+					<button class='close-button danger' aria-label='Close' title='Close' onclick='showDialog("image-picker-dialog", false)'></button>
+				</div>
+				<div class='modal-dialog__content-box'>
+					<input type='text' id='image-picker-filter' class='js-dialog__focus' placeholder='Filter' aria-label='Filter images' autocomplete='off'>
+					<div id='image-picker-grid' class='notranslate' translate='no'></div>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button onclick='showDialog("image-picker-dialog", false)'>Cancel</button>
 				</div>
 			</div>
 		</div>

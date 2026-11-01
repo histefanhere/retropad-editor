@@ -618,6 +618,54 @@ input[type=number] {
 	color: #b01;
 }
 
+#button-properties-table #image-name {
+	width: 72%;
+}
+
+#button-properties-table #command-name {
+	width: 72%;
+}
+
+#image-picker-filter {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+#image-picker-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 88px);
+	gap: 6px;
+	width: min(84vw, 560px);
+	max-height: 55vh;
+	overflow-y: auto;
+	margin-top: 8px;
+}
+
+#image-picker-grid button {
+	min-width: 0;
+	width: 88px;
+	padding: 4px;
+	background-color: #f7f7fa;
+	border-color: #ccd;
+	color: #555;
+	font-size: 0.65em;
+	overflow-wrap: anywhere;
+}
+
+#image-picker-grid button:hover {
+	border-color: #08d;
+}
+
+#image-picker-grid img {
+	display: block;
+	width: 48px;
+	height: 48px;
+	margin: 0 auto 2px;
+	object-fit: contain;
+	background-color: #aac;
+	border-radius: 3px;
+}
+
 #download-help {
 	display: inline-block;
 	color: #777;

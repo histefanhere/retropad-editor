@@ -120,6 +120,7 @@ document.getElementById('overlay-selector').addEventListener('change', selectOve
 document.getElementById('command-select').addEventListener('change', fillCommandField);
 document.getElementById('image-select').addEventListener('change', fillImageNameField);
 document.getElementById('image-name').addEventListener('input', e => showImagePreview(e.target.value));
+document.getElementById('image-picker-filter').addEventListener('input', fillImagePicker);
 
 document.getElementById('load-config').addEventListener('change', loadConfigFromFile);
 document.getElementById('load-button-images').addEventListener('change', loadImageFiles);
@@ -1731,6 +1732,44 @@ function fillImageSelector() {
 		o.appendChild(document.createTextNode(name));
 		selector.appendChild(o);
 	}
+}
+
+
+function showImagePicker() {
+	document.getElementById('image-picker-filter').value = '';
+	fillImagePicker();
+	showDialog('image-picker-dialog', true);
+}
+
+
+function fillImagePicker() {
+	let filter = document.getElementById('image-picker-filter').value.trim().toLowerCase();
+	let grid = document.getElementById('image-picker-grid');
+	grid.innerHTML = '';
+
+	let names = userImages.concat(Object.keys(images).filter(name => !userImages.includes(name)));
+
+	names.filter(name => name.toLowerCase().includes(filter)).forEach(name => {
+		let button = document.createElement('BUTTON');
+
+		let thumbnail = document.createElement('IMG');
+		thumbnail.src = images[name];
+		thumbnail.alt = '';
+		thumbnail.loading = 'lazy';
+
+		button.appendChild(thumbnail);
+		button.appendChild(document.createTextNode(name));
+		button.addEventListener('click', () => chooseImage(name));
+		grid.appendChild(button);
+	});
+}
+
+
+function chooseImage(name) {
+	document.getElementById('image-name').value = name;
+	setImageSelectorOption(name);
+	showImagePreview(name);
+	showDialog('image-picker-dialog', false);
 }
 
 
