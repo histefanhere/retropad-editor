@@ -79,7 +79,7 @@ if (defaultImagesObj) // defaults.js
 
 let userImages = [];
 
-fillCommandSelector(buttonCommandList);
+fillCommandSelector(buttonCommandGroups);
 fillTemplateSelector();
 fillImageSelector();
 
@@ -1747,15 +1747,23 @@ function setImageSelectorOption(value) {
 }
 
 
-function fillCommandSelector(commands) {
-	commands = commands.split('\n');
+function fillCommandSelector(groups) {
 	let s = document.getElementById('command-select');
+	s.appendChild(document.createElement('OPTION'));
 
-	commands.forEach((e) => {
-		let o = document.createElement('OPTION');
-		o.appendChild(document.createTextNode(e));
-		s.appendChild(o);
-	})
+	groups.forEach((group) => {
+		let g = document.createElement('OPTGROUP');
+		g.label = group.label;
+
+		group.commands.forEach(([command, name]) => {
+			let o = document.createElement('OPTION');
+			o.value = command;
+			o.appendChild(document.createTextNode(name));
+			g.appendChild(o);
+		});
+
+		s.appendChild(g);
+	});
 }
 
 
@@ -1764,7 +1772,7 @@ function setCommandSelectorOption(value) {
 	s.selectedIndex = 0;
 
 	for (let i = 0; i < s.options.length; i++) {
-		if (s.options[i].text == value) {
+		if (s.options[i].value == value) {
 			s.selectedIndex = i;
 			break;
 		}

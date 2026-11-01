@@ -328,47 +328,43 @@
 		overlay3_desc14_saturate_pct = 0.65
 		overlay3_desc14_movable = true`.replace(indent, '\n');
 
-	window.buttonCommandList = `up
-		down
-		left
-		right
-		a
-		b
-		x
-		y
-		l
-		l2
-		l3
-		r
-		r2
-		r3
-		select
-		start
-		analog_left
-		analog_right
-		l_x_minus
-		l_x_plus
-		l_y_minus
-		l_y_plus
-		abxy_area
-		dpad_area
-		#
-		menu_toggle
-		overlay_next
-		load_state
-		save_state
-		state_slot_increase
-		state_slot_decrease
-		shader_next
-		shader_prev
-		rewind
-		hold_fast_forward
-		toggle_fast_forward
-		hold_slowmotion
-		toggle_slowmotion
-		audio_mute
-		pause_toggle
-		screenshot
-		reset
-		exit_emulator`.replace(indent, '\n').replace('#', '');
+	window.buttonCommandGroups = [
+		{
+			label: 'Directions',
+			commands: [['up', 'Up'], ['down', 'Down'], ['left', 'Left'], ['right', 'Right']],
+		},
+		{
+			label: 'Buttons',
+			commands: [['a', 'A'], ['b', 'B'], ['x', 'X'], ['y', 'Y'], ['select', 'Select'], ['start', 'Start']],
+		},
+		{
+			label: 'Shoulders and sticks',
+			commands: [['l', 'L'], ['l2', 'L2'], ['l3', 'L3 (stick press)'], ['r', 'R'], ['r2', 'R2'], ['r3', 'R3 (stick press)']],
+		},
+		{
+			label: 'Analog',
+			commands: [
+				['analog_left', 'Left stick'], ['analog_right', 'Right stick'],
+				['l_x_minus', 'Left stick left'], ['l_x_plus', 'Left stick right'],
+				['l_y_minus', 'Left stick up'], ['l_y_plus', 'Left stick down'],
+			],
+		},
+		{
+			label: 'Touch areas',
+			commands: [['abxy_area', 'ABXY area'], ['dpad_area', 'D-pad area']],
+		},
+		{
+			label: 'RetroArch',
+			commands: [
+				['menu_toggle', 'Open menu'], ['overlay_next', 'Next overlay'],
+				['load_state', 'Load state'], ['save_state', 'Save state'],
+				['state_slot_increase', 'Next state slot'], ['state_slot_decrease', 'Previous state slot'],
+				['shader_next', 'Next shader'], ['shader_prev', 'Previous shader'],
+				['rewind', 'Rewind'], ['hold_fast_forward', 'Fast forward (hold)'], ['toggle_fast_forward', 'Fast forward (toggle)'],
+				['hold_slowmotion', 'Slow motion (hold)'], ['toggle_slowmotion', 'Slow motion (toggle)'],
+				['audio_mute', 'Mute'], ['pause_toggle', 'Pause'], ['screenshot', 'Screenshot'],
+				['reset', 'Reset game'], ['exit_emulator', 'Exit RetroArch'],
+			],
+		},
+	];
 }
