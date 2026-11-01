@@ -6,6 +6,7 @@ https://valent-in.github.io/retropad-editor/
 Features:
 - Create, move, resize buttons of virtual gamepad (drag buttons and their corner handles, or use sliders).
 - Undo and redo.
+- Unsaved work is kept in the browser and can be restored on next visit.
 - Multiple layers; auto switch orientation for portrait overlays.
 - Fix overlay aspect ratio.
 - Import image resources in addition to 'flat' image set.

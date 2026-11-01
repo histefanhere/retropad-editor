@@ -14,6 +14,7 @@
 
 	<script defer src='js/defaults.js'></script>
 	<script defer src='js/config-handler.js'></script>
+	<script defer src='js/session-store.js'></script>
 	<script defer src='js/editor.js'></script>
 	<script defer src='js/file-input-helper.js'></script>
 </head>
@@ -508,6 +509,18 @@
 				<div class='modal-dialog__footer-box'>
 					<button class='danger js-dialog__focus' onclick='resetPad()'>Reset</button>
 					<button onclick='showDialog("reset-dialog", false)'>Cancel</button>
+				</div>
+			</div>
+		</div>
+
+		<div id='session-restore-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog' role='dialog' aria-modal='true'>
+				<div class='modal-dialog__content-box'>
+					<span>Unsaved work from your last visit was found.<br>Do you want to restore it?</span>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button class='important js-dialog__focus' onclick='restoreSession()'>Restore</button>
+					<button onclick='discardSession()'>Start new</button>
 				</div>
 			</div>
 		</div>

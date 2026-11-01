@@ -11,6 +11,7 @@ const manualScaleParams = 'block_x_separation = false\nblock_y_separation = fals
 const DRAG_THRESHOLD_PX = 3;
 const MIN_BUTTON_SIZE = 0.001;
 const HISTORY_LIMIT = 100;
+const AUTOSAVE_DELAY_MS = 500;
 
 let importedFilename = 'retropad.cfg';
 let savedConfigStr;
@@ -21,6 +22,10 @@ let cancelActiveDrag = null;
 let undoStack = [];
 let redoStack = [];
 let historyCurrentStr;
+
+let isAutosaveReady = false;
+let autosaveTimer = null;
+let pendingSession = null;
 
 let screen = {
 	_width: DEF_WIDTH,
@@ -108,6 +113,13 @@ window.addEventListener('pointerdown', () => { suppressRectClick = false }, true
 
 document.addEventListener('keydown', closeTopDialogOnEscape);
 window.addEventListener('beforeunload', warnAboutUnsavedChanges);
+window.addEventListener('beforeunload', flushPendingAutosave);
+document.addEventListener('visibilitychange', () => {
+	if (document.visibilityState == 'hidden')
+		flushPendingAutosave();
+});
+
+checkForSavedSession();
 
 
 function applyButtonParam(section, sValue) {
@@ -598,6 +610,7 @@ function loadImageFiles(e) {
 			if (++loadCounter == imgCounter) {
 				redrawPad();
 				fillImageSelector();
+				scheduleAutosave();
 			}
 		};
 
@@ -706,6 +719,7 @@ function commitHistory() {
 	redoStack.length = 0;
 	historyCurrentStr = current;
 	updateHistoryButtons();
+	scheduleAutosave();
 }
 
 
@@ -714,6 +728,7 @@ function resetHistory() {
 	redoStack.length = 0;
 	historyCurrentStr = conf.getConfigString();
 	updateHistoryButtons();
+	scheduleAutosave();
 }
 
 
@@ -744,6 +759,111 @@ function applyHistoryState(str) {
 	setScreenDimensions();
 	redrawPad();
 	updateHistoryButtons();
+	scheduleAutosave();
+}
+
+
+function scheduleAutosave() {
+	if (!isAutosaveReady)
+		return;
+
+	clearTimeout(autosaveTimer);
+	autosaveTimer = setTimeout(flushAutosave, AUTOSAVE_DELAY_MS);
+}
+
+
+function flushPendingAutosave() {
+	if (autosaveTimer)
+		flushAutosave();
+}
+
+
+function flushAutosave() {
+	clearTimeout(autosaveTimer);
+	autosaveTimer = null;
+
+	let config = conf.getConfigString();
+	if (config == savedConfigStr) {
+		sessionStore.clear().catch(console.log);
+		return;
+	}
+
+	let sessionImages = {};
+	userImages.forEach(name => { sessionImages[name] = images[name] });
+
+	sessionStore.save({
+		config: config,
+		baseConfig: configStr,
+		savedConfig: savedConfigStr,
+		filename: importedFilename,
+		overlay: conf.getCurrentOverlay(),
+		images: sessionImages,
+		screen: {
+			_width: screen._width,
+			_height: screen._height,
+			isSetByUser: screen.isSetByUser,
+			scale: screen.scale,
+		},
+	}).catch(console.log);
+}
+
+
+function checkForSavedSession() {
+	sessionStore.load().then(session => {
+		if (session) {
+			pendingSession = session;
+			showDialog('session-restore-dialog', true);
+		} else {
+			isAutosaveReady = true;
+		}
+	}).catch(err => {
+		console.log(err);
+		isAutosaveReady = true;
+	});
+}
+
+
+function restoreSession() {
+	showDialog('session-restore-dialog', false);
+
+	let session = pendingSession;
+	pendingSession = null;
+	isAutosaveReady = true;
+
+	try {
+		Object.assign(images, session.images);
+		userImages = Object.keys(session.images);
+		fillImageSelector();
+
+		Object.assign(screen, session.screen);
+		configStr = session.baseConfig;
+		importedFilename = session.filename;
+
+		renderConfig(session.config);
+		savedConfigStr = session.savedConfig;
+
+		buildAndSetOverlaySelectors(session.overlay);
+		setScreenDimensions();
+		redrawPad();
+		scheduleAutosave();
+	} catch (err) {
+		console.log(err);
+		alert('Can not restore previous work.');
+
+		configStr = defaultConfigString;
+		importedFilename = 'retropad.cfg';
+		renderConfig(configStr);
+		sessionStore.clear().catch(console.log);
+	}
+}
+
+
+function discardSession() {
+	showDialog('session-restore-dialog', false);
+
+	pendingSession = null;
+	isAutosaveReady = true;
+	sessionStore.clear().catch(console.log);
 }
 
 
@@ -879,6 +999,7 @@ function exportConfig() {
 	setTimeout(() => URL.revokeObjectURL(a.href), 0);
 
 	savedConfigStr = configText;
+	scheduleAutosave();
 }
 
 
@@ -1240,6 +1361,9 @@ function closeTopDialogOnEscape(event) {
 
 	// nested dialogs are placed after their parents in markup
 	let dialogs = document.querySelectorAll('.dialog-container:not(.hidden)');
+	if (pendingSession)
+		return;
+
 	if (dialogs.length > 0)
 		showDialog(dialogs[dialogs.length - 1].id, false);
 }
