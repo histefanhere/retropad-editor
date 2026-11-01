@@ -3,7 +3,11 @@
 	"private": true,
 	"description": "Edit onscreen gamepads for RetroArch",
 	"scripts": {
-		"test": "node --test tests/unit/"
+		"test": "node --test tests/unit/",
+		"test:browser": "node tests/smoke.js"
 	},
-	"license": "GPL-3.0-only"
+	"license": "GPL-3.0-only",
+	"devDependencies": {
+		"playwright-core": "1.48.2"
+	}
 }

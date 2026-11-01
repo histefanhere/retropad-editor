@@ -35,6 +35,7 @@ Keyboard shortcuts:
 Development:
 - The site is static files with no build step.
 - `npm test` runs unit tests.
+- `npm run test:browser` runs browser checks using installed Microsoft Edge (set `BROWSER_CHANNEL=chrome` for Chrome).
 ---
 Libretro Docs: https://docs.libretro.com/development/retroarch/input/overlay/
 
