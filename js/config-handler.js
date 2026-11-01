@@ -209,7 +209,6 @@ function ConfigHandler() {
 		}
 
 		let name = _getParamValue('overlay' + _currentOverlay + '_name');
-		console.log("DELETE OVERLAY", name);
 
 		_deleteParamStrings('overlay' + _currentOverlay);
 
@@ -266,7 +265,6 @@ function ConfigHandler() {
 		let current = this.getCurrentOverlayParams();
 
 		let currentName = _getParamValue(overlayXX + '_name');
-		console.log('OLD NAME: ' + currentName);
 
 		_setParamValue(overlayXX + '_name', '"' + name + '"');
 		let insertAfter = _getParamIndex(overlayXX + '_name', name);
@@ -277,18 +275,13 @@ function ConfigHandler() {
 			let currentLineParam = currentLine.split('=')[0].trim();
 			let index = _getParamIndex(currentLineParam);
 			if (index >= 0) {
-				console.log('DELETE: ' + currentLine);
 				_strings.splice(index, 1);
-			} else {
-				console.log('NOT FOUND: ' + currentLine);
 			}
 		}
 
-		console.log('NEW NAME: ' + name);
 		let newParams = []
 		for (let i = 0; i < params.length; i++) {
 			newParams.push(overlayXX + '_' + params[i]);
-			console.log('ADD: ' + overlayXX + '_' + params[i]);
 		}
 
 		_strings.splice(insertAfter + 1, 0, ...newParams);
@@ -314,7 +307,6 @@ function ConfigHandler() {
 			params.push(current[i].substr(overlayXX.length + 1));
 		}
 
-		console.log(params);
 		return params;
 	}
 
@@ -383,7 +375,6 @@ function ConfigHandler() {
 			throw new Error('can not find position to insert new line');
 
 		let overlayXX_descYY = `${overlayXX}_desc${buttCount}`;
-		console.log("NEW BUTTON", overlayXX_descYY, command, shape, image);
 		let arr = [`${overlayXX_descYY} = "${command},0.50000,0.50000,${shape},0.05000,0.05000"`];
 		_strings.splice(last + 1, 0, ...arr);
 
@@ -450,7 +441,6 @@ function ConfigHandler() {
 		}
 
 		let parameter = _isOverlayXX_descYY(_strings[_currentLine]);
-		console.log("DELETE BUTTON", parameter);
 		let buttCount = Number(_getParamValue('overlay' + _currentOverlay + '_descs'));
 
 		if (buttCount <= 1) {
@@ -689,7 +679,6 @@ function ConfigHandler() {
 
 	this.getOverlayList = function () {
 		let count = Number(_getParamValue('overlays'));
-		console.log('overlays:', count);
 
 		let list = [];
 
@@ -765,7 +754,6 @@ function ConfigHandler() {
 			}
 		}
 
-		console.log(ret);
 		return ret;
 	}
 
@@ -1158,10 +1146,8 @@ function ConfigHandler() {
 				continue;
 
 			if (newName) {
-				console.log('REPLACE: ' + _strings[i]);
 				_strings[i] = _strings[i].split('=')[0].trim() + ' = "' + newName + '"';
 			} else {
-				console.log('DELETE: ' + _strings[i]);
 				_strings.splice(i, 1);
 			}
 		}
@@ -1171,7 +1157,6 @@ function ConfigHandler() {
 	function _calculateAspect(coef) {
 		coef = Number(coef)
 		if (isNaN(coef)) {
-			console.log('Wrong aspect ratio in config');
 			return { w: 1, h: 1 }
 		}
 

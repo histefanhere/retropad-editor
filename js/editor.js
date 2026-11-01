@@ -888,8 +888,6 @@ function syncSelectedButtons() {
 			currentRect = elem[0];
 			conf.setCurrentLine(e);
 			updateCurrentLine(null);
-		} else {
-			console.log('wrong selection index', e)
 		}
 	});
 }
@@ -945,7 +943,6 @@ function readConfigFile(file, onError) {
 			resetExportFilename();
 		} catch {
 			let errMsg = 'FILE PARSING ERROR!';
-			console.log(errMsg);
 			showToast(errMsg + '\nPrevious config is restored.');
 			renderConfig(previousConfig, true);
 			savedConfigStr = previousSaved;
@@ -1022,7 +1019,6 @@ function readImageFiles(files) {
 
 		imgCounter++;
 		let name = file.name;
-		console.log(name);
 
 		let reader = new FileReader();
 
@@ -1031,7 +1027,6 @@ function readImageFiles(files) {
 
 			if (!userImages.includes(name)) {
 				userImages.push(name);
-				console.log(name);
 			}
 
 			// onload is async function so loop ends BEFORE it's first launch
@@ -1052,9 +1047,6 @@ function loadScreenshotFile(e) {
 	if (!file)
 		return;
 
-	let name = file.name;
-	console.log(name);
-
 	let reader = new FileReader();
 
 	reader.onload = function (ev) {
@@ -1068,7 +1060,6 @@ function loadScreenshotFile(e) {
 			im.onload = function () {
 				screen.shotWidth = im.naturalWidth;
 				screen.shotHeight = im.naturalHeight;
-				console.log('Size', im.naturalWidth, im.naturalHeight);
 
 				setScreenDimensions();
 				redrawPad();
@@ -1212,7 +1203,7 @@ function flushAutosave() {
 
 	let config = conf.getConfigString();
 	if (config == savedConfigStr) {
-		sessionStore.clear().catch(console.log);
+		sessionStore.clear().catch(console.error);
 		return;
 	}
 
@@ -1232,7 +1223,7 @@ function flushAutosave() {
 			isSetByUser: screen.isSetByUser,
 			scale: screen.scale,
 		},
-	}).catch(console.log);
+	}).catch(console.error);
 }
 
 
@@ -1245,7 +1236,7 @@ function checkForSavedSession() {
 			isAutosaveReady = true;
 		}
 	}).catch(err => {
-		console.log(err);
+		console.error(err);
 		isAutosaveReady = true;
 	});
 }
@@ -1275,13 +1266,13 @@ function restoreSession() {
 		redrawPad();
 		scheduleAutosave();
 	} catch (err) {
-		console.log(err);
+		console.error(err);
 		showToast('Can not restore previous work.');
 
 		configStr = defaultConfigString;
 		importedFilename = 'retropad.cfg';
 		renderConfig(configStr);
-		sessionStore.clear().catch(console.log);
+		sessionStore.clear().catch(console.error);
 	}
 }
 
@@ -1291,7 +1282,7 @@ function discardSession() {
 
 	pendingSession = null;
 	isAutosaveReady = true;
-	sessionStore.clear().catch(console.log);
+	sessionStore.clear().catch(console.error);
 }
 
 
@@ -1900,7 +1891,7 @@ function fillAdditionalPropsFields(data) {
 		try {
 			fields = document.querySelectorAll('.js-additional-button-property #' + prop + '_property');
 		} catch {
-			console.log('probably wrong property name', prop);
+			// Property name is not a valid selector, keep it in raw data
 		}
 
 		switch (fields.length) {
@@ -1913,7 +1904,6 @@ function fillAdditionalPropsFields(data) {
 				break;
 
 			default:
-				console.log('More than one ui element found!');
 		}
 
 	});
@@ -2092,17 +2082,12 @@ function calculateScreenSizeToFit(width, height) {
 		let coef = 0.85;
 		let theight = vw * coef;
 		scale = theight / _height;
-		console.log('[RESCALE] viewport width ' + vw + 'px - screen height ' + theight + 'px (' + coef + ')');
 	} else {
 		let coef = vw <= 1280 ? 0.7 : 0.55;
 		let twidth = vw * coef;
 		scale = twidth / _width;
-		console.log('[RESCALE] viewport width ' + vw + 'px - screen width ' + twidth + 'px (' + coef + ')');
 	}
 
-	let swidth = +(width * scale).toFixed(2);
-	let sheight = +(height * scale).toFixed(2);
-	console.log('scale factor ' + scale + ' (from ' + width + 'x' + height + ' to ' + swidth + 'x' + sheight + ')');
 
 	return scale;
 }
@@ -2359,7 +2344,6 @@ function getButtonDataFromDialog() {
 	d.image = document.getElementById('image-name').value;
 
 	d.lines = readAdditionalPropsFields();
-	console.log(d.lines);
 
 	return d;
 }
