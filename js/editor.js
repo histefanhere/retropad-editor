@@ -197,6 +197,9 @@ loadPreferences();
 
 checkForSavedSession();
 
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+	navigator.serviceWorker.register('sw.js').catch(console.error);
+
 
 function applyButtonParam(section, sValue) {
 	let value = Number(sValue);

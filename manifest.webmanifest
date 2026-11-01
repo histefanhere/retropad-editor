@@ -1,0 +1,18 @@
+{
+	"name": "RetroPad Editor",
+	"short_name": "RetroPad",
+	"description": "Edit onscreen gamepads for RetroArch",
+	"start_url": "./",
+	"scope": "./",
+	"display": "standalone",
+	"background_color": "#d5d5d5",
+	"theme_color": "#0088dd",
+	"icons": [
+		{
+			"src": "img/retroarch-icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any"
+		}
+	]
+}
