@@ -22,6 +22,7 @@ let importedFilename = 'retropad.cfg';
 let savedConfigStr;
 let currentRect;
 let suppressRectClick = false;
+let selectionBeforeMouseDown = [];
 let cancelActiveDrag = null;
 
 let undoStack = [];
@@ -175,9 +176,15 @@ function createPadView() {
 			}
 		});
 
-		b.addEventListener('click', () => {
+		b.addEventListener('click', (e) => {
 			if (suppressRectClick) {
 				suppressRectClick = false;
+				return;
+			}
+
+			if (e.ctrlKey || e.metaKey || e.shiftKey) {
+				toggleRectInSelection(r.i, e.shiftKey ? selectionBeforeMouseDown : getSelectedLines());
+				document.activeElement.blur();
 				return;
 			}
 
@@ -208,8 +215,43 @@ function selectRect(rect, lineIndex) {
 }
 
 
+function getSelectedLines() {
+	if (conf.isGroupSelected())
+		return conf.getSelectedIndexes().slice();
+
+	return document.getElementById('x-number').disabled ? [] : [conf.getCurrentLine()];
+}
+
+
+function toggleRectInSelection(lineIndex, lines) {
+	let isIncluded = lines.includes(lineIndex);
+	applySelection(isIncluded ? lines.filter(e => e != lineIndex) : lines.concat(lineIndex));
+}
+
+
+function applySelection(lines) {
+	deselectAll();
+	conf.setCurrentLine(-1);
+	currentRect = null;
+
+	if (lines.length == 0) {
+		enableEditor(false);
+		return;
+	}
+
+	if (lines.length == 1) {
+		selectRect(document.querySelector('.rect[data-line-index="' + lines[0] + '"]'), lines[0]);
+		return;
+	}
+
+	conf.setSelectedIndexes(lines);
+	lines.forEach(e => document.querySelector('.rect[data-line-index="' + e + '"]').classList.add('selected'));
+	setEditorControls();
+}
+
+
 function onRectPointerDown(event, rect, lineIndex) {
-	if (event.button != 0 || event.shiftKey)
+	if (event.button != 0 || event.shiftKey || event.ctrlKey || event.metaKey)
 		return;
 
 	// Touch: first tap selects, so pad area can still be scrolled
@@ -500,6 +542,7 @@ function createPadBackground() {
 		startY = event.clientY - ty;
 
 		isMouseDown = true;
+		selectionBeforeMouseDown = getSelectedLines();
 		deselectAll();
 		conf.setCurrentLine(-1);
 		currentRect = null;
